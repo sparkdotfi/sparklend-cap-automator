@@ -3,17 +3,16 @@ pragma solidity ^0.8.13;
 
 contract CapAutomator {
 
-    struct MarketCapsData {
-        uint256 maxSupplyCap;
-        uint256 maxSupplyCapGap;
-        uint256 maxBorrowCap;
-        uint256 maxBorrowCapGap;
+    struct CapConfig {
+        uint256 maxCap;
+        uint256 maxCapGap;
         uint48  capIncreaseCooldown; // seconds
         uint48  lastUpdateBlock;     // blocks
         uint48  lastIncreaseTime;    // seconds
     }
 
-    mapping(address => MarketCapsData) public marketCapsData;
+    mapping(address => CapConfig) public supplyCapConfigs;
+    mapping(address => CapConfig) public borrowCapConfigs;
 
     address public immutable poolConfigurator;
 
@@ -43,35 +42,68 @@ contract CapAutomator {
         authority = authority_;
     }
 
-    function setMarketCapsData(
+    function _validateCapConfig(
+        uint256 maxCap,
+        uint256 capIncreaseCooldown
+    ) internal pure {
+        require(maxCap > 0,                       "CapAutomator/invalid-cap");
+        require(capIncreaseCooldown <= 2**48 - 1, "CapAutomator/invalid-cooldown");
+    }
+
+    function setSupplyCapConfig(
         address asset,
-        uint256 maxSupplyCap,
-        uint256 maxSupplyCapGap,
-        uint256 maxBorrowCap,
-        uint256 maxBorrowCapGap,
+        uint256 maxCap,
+        uint256 maxCapGap,
         uint256 capIncreaseCooldown
     ) external auth {
-        require(capIncreaseCooldown  <= 2**48 - 1, "CapAutomator/invalid-cooldown");
-        require(maxSupplyCap > 0,                  "CapAutomator/invalid-supply-cap");
-        require(maxBorrowCap > 0,                  "CapAutomator/invalid-borrow-cap");
+        _validateCapConfig(maxCap, capIncreaseCooldown);
 
-        marketCapsData[asset] = MarketCapsData(
-            maxSupplyCap,
-            maxSupplyCapGap,
-            maxBorrowCap,
-            maxBorrowCapGap,
+        supplyCapConfigs[asset] = CapConfig(
+            maxCap,
+            maxCapGap,
             uint48(capIncreaseCooldown),
-            marketCapsData[asset].lastUpdateBlock,
-            marketCapsData[asset].lastIncreaseTime
+            supplyCapConfigs[asset].lastUpdateBlock,
+            supplyCapConfigs[asset].lastIncreaseTime
         );
     }
 
-    function removeMarketCapsData(address asset) external auth {
-        delete marketCapsData[asset];
+    function setBorrowCapConfig(
+        address asset,
+        uint256 maxCap,
+        uint256 maxCapGap,
+        uint256 capIncreaseCooldown
+    ) external auth {
+        _validateCapConfig(maxCap, capIncreaseCooldown);
+
+        borrowCapConfigs[asset] = CapConfig(
+            maxCap,
+            maxCapGap,
+            uint48(capIncreaseCooldown),
+            borrowCapConfigs[asset].lastUpdateBlock,
+            borrowCapConfigs[asset].lastIncreaseTime
+        );
+    }
+
+    function removeSupplyCapConfig(address asset) external auth {
+        delete supplyCapConfigs[asset];
+    }
+
+    function removeBorrowCapConfig(address asset) external auth {
+        delete borrowCapConfigs[asset];
+    }
+
+    function _updateSupplyCapConfig(address asset) internal {
+        supplyCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);
+        supplyCapConfigs[asset].lastUpdateBlock  = uint48(block.number);
+    }
+
+    function _updateBorrowCapConfig(address asset) internal {
+        borrowCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);
+        borrowCapConfigs[asset].lastUpdateBlock  = uint48(block.number);
     }
 
     function exec(address asset) external {
-            marketCapsData[asset].lastUpdateBlock  = uint48(block.number);
-            marketCapsData[asset].lastIncreaseTime = uint48(block.timestamp);
+        _updateSupplyCapConfig(asset);
+        _updateBorrowCapConfig(asset);
     }
 }
