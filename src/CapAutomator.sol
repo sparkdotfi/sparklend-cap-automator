@@ -103,30 +103,44 @@ contract CapAutomator {
         return a <= b ? a : b;
     }
 
-    function _updateSupplyCapConfig(address asset) internal returns (uint256) {
-        uint256 maxCap = supplyCapConfigs[asset].maxCap;
+    function _calculateNewCap(
+        CapConfig memory capConfig,
+        uint256 currentState,
+        uint256 currentCap
+    ) internal view returns (uint256) {
+        uint256 maxCap = capConfig.maxCap;
 
-        (,uint256 currentSupplyCap) = dataProvider.getReserveCaps(asset);
-          uint256 currentSupply     = dataProvider.getATokenTotalSupply(asset);
+        if(maxCap == 0) return currentCap;
 
-        if(maxCap == 0) return currentSupplyCap;
+        uint48 capIncreaseCooldown = capConfig.capIncreaseCooldown;
+        uint48 lastUpdateBlock     = capConfig.lastUpdateBlock;
+        uint48 lastIncreaseTime    = capConfig.lastIncreaseTime;
 
-        uint48 capIncreaseCooldown = supplyCapConfigs[asset].capIncreaseCooldown;
-        uint48 lastUpdateBlock     = supplyCapConfigs[asset].lastUpdateBlock;
-        uint48 lastIncreaseTime    = supplyCapConfigs[asset].lastIncreaseTime;
+        if (lastUpdateBlock == block.number) return currentCap;
 
-        if (lastUpdateBlock == block.number) return currentSupplyCap;
+        uint256 capGap = capConfig.capGap;
 
-        uint256 capGap = supplyCapConfigs[asset].capGap;
-
-        uint256 newSupplyCap =_min(currentSupply + capGap, maxCap);
-
-        if(newSupplyCap == currentSupplyCap) return currentSupplyCap;
+        uint256 newCap =_min(currentState + capGap, maxCap);
 
         if(
-            newSupplyCap > currentSupplyCap
+            newCap > currentCap
             && block.timestamp < (lastIncreaseTime + capIncreaseCooldown)
-        ) return currentSupplyCap;
+        ) return currentCap;
+
+        return newCap;
+    }
+
+    function _updateSupplyCapConfig(address asset) internal returns (uint256) {
+          uint256 currentSupply     = dataProvider.getATokenTotalSupply(asset);
+        (,uint256 currentSupplyCap) = dataProvider.getReserveCaps(asset);
+
+        uint256 newSupplyCap = _calculateNewCap(
+            supplyCapConfigs[asset],
+            currentSupply,
+            currentSupplyCap
+        );
+
+        if(newSupplyCap == currentSupplyCap) return currentSupplyCap;
 
         poolConfigurator.setSupplyCap(asset, newSupplyCap);
 
@@ -141,31 +155,16 @@ contract CapAutomator {
     }
 
     function _updateBorrowCapConfig(address asset) internal returns (uint256) {
-        uint256 maxCap = borrowCapConfigs[asset].maxCap;
-
-        // Get current borrows and current max borrow instead of these 0s
-        (uint256 currentBorrowCap,) = dataProvider.getReserveCaps(asset);
          uint256 currentBorrow      = dataProvider.getTotalDebt(asset);
+        (uint256 currentBorrowCap,) = dataProvider.getReserveCaps(asset);
 
-        if(maxCap == 0) return currentBorrowCap;
-
-        uint48 capIncreaseCooldown = borrowCapConfigs[asset].capIncreaseCooldown;
-        uint48 lastUpdateBlock     = borrowCapConfigs[asset].lastUpdateBlock;
-        uint48 lastIncreaseTime    = borrowCapConfigs[asset].lastIncreaseTime;
-
-
-        if (lastUpdateBlock == block.number) return currentBorrowCap;
-
-        uint256 capGap = borrowCapConfigs[asset].capGap;
-
-        uint256 newBorrowCap =_min(currentBorrow + capGap, maxCap);
+        uint256 newBorrowCap = _calculateNewCap(
+            borrowCapConfigs[asset],
+            currentBorrow,
+            currentBorrowCap
+        );
 
         if(newBorrowCap == currentBorrowCap) return currentBorrowCap;
-
-        if(
-            newBorrowCap > currentBorrowCap
-            && block.timestamp < (lastIncreaseTime + capIncreaseCooldown)
-        ) return currentBorrowCap;
 
         poolConfigurator.setBorrowCap(asset, newBorrowCap);
 
