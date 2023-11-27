@@ -223,7 +223,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        (,,,
+        (
+            ,,,
             uint48 lastUpdateBlock,
             uint48 lastIncreaseTime
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
@@ -234,7 +235,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         vm.warp(12 hours);
         capAutomator.exec(makeAddr("asset"));
 
-        (,,,
+        (
+            ,,,
             uint48 postExecUpdateBlock,
             uint48 postExecIncreaseTime
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
@@ -250,7 +252,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             24 hours
         );
 
-        (,,,
+        (
+            ,,,
             uint48 postReconfigUpdateBlock,
             uint48 postReconfigIncreaseTime
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
@@ -382,7 +385,8 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        (,,,
+        (
+            ,,,
             uint48 lastUpdateBlock,
             uint48 lastIncreaseTime
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
@@ -393,7 +397,8 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         vm.warp(12 hours);
         capAutomator.exec(makeAddr("asset"));
 
-        (,,,
+        (
+            ,,,
             uint48 postExecUpdateBlock,
             uint48 postExecIncreaseTime
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
@@ -409,7 +414,8 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             24 hours
         );
 
-        (,,,
+        (
+            ,,,
             uint48 postReconfigUpdateBlock,
             uint48 postReconfigIncreaseTime
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
