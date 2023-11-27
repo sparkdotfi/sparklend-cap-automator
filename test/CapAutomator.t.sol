@@ -10,6 +10,7 @@ import { CapAutomator } from "../src/CapAutomator.sol";
 
 import { MockPoolConfigurator } from "./mocks/MockPoolConfigurator.sol";
 import { MockDataProvider }     from "./mocks/MockDataProvider.sol";
+import { CapAutomatorHarness }  from "./harnesses/CapAutomatorHarness.sol";
 
 contract CapAutomatorUnitTestBase is Test {
 
@@ -25,9 +26,9 @@ contract CapAutomatorUnitTestBase is Test {
         configurator = new MockPoolConfigurator();
         dataProvider = new MockDataProvider({
             _aTokenTotalSupply: 6_900_000,
-            _totalDebt: 3_900_000,
-            _borrowCap: 4_000_000,
-            _supplyCap: 7_000_000
+            _totalDebt:         3_900_000,
+            _borrowCap:         4_000_000,
+            _supplyCap:         7_000_000
         });
 
         owner        = makeAddr("owner");
@@ -144,7 +145,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              0);
-        assertEq(capGap,           0);
+        assertEq(capGap,              0);
         assertEq(capIncreaseCooldown, 0);
         assertEq(lastUpdateBlock,     0);
         assertEq(lastIncreaseTime,    0);
@@ -167,7 +168,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              10_000_000);
-        assertEq(capGap,           1_000_000);
+        assertEq(capGap,              1_000_000);
         assertEq(capIncreaseCooldown, 12 hours);
         assertEq(lastUpdateBlock,     0);
         assertEq(lastIncreaseTime,    0);
@@ -190,7 +191,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              10_000_000);
-        assertEq(capGap,           1_000_000);
+        assertEq(capGap,              1_000_000);
         assertEq(capIncreaseCooldown, 12 hours);
 
         vm.prank(authority);
@@ -209,7 +210,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              13_000_000);
-        assertEq(capGap,           1_300_000);
+        assertEq(capGap,              1_300_000);
         assertEq(capIncreaseCooldown, 24 hours);
     }
 
@@ -304,7 +305,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              0);
-        assertEq(capGap,           0);
+        assertEq(capGap,              0);
         assertEq(capIncreaseCooldown, 0);
         assertEq(lastUpdateBlock,     0);
         assertEq(lastIncreaseTime,    0);
@@ -326,7 +327,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              10_000_000);
-        assertEq(capGap,           1_000_000);
+        assertEq(capGap,              1_000_000);
         assertEq(capIncreaseCooldown, 12 hours);
         assertEq(lastUpdateBlock,     0);
         assertEq(lastIncreaseTime,    0);
@@ -349,7 +350,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              10_000_000);
-        assertEq(capGap,           1_000_000);
+        assertEq(capGap,              1_000_000);
         assertEq(capIncreaseCooldown, 12 hours);
 
         vm.prank(authority);
@@ -368,7 +369,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              13_000_000);
-        assertEq(capGap,           1_300_000);
+        assertEq(capGap,              1_300_000);
         assertEq(capIncreaseCooldown, 24 hours);
     }
 
@@ -444,7 +445,7 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              10_000_000);
-        assertEq(capGap,           1_000_000);
+        assertEq(capGap,              1_000_000);
         assertEq(capIncreaseCooldown, 12 hours);
 
         vm.prank(authority);
@@ -457,8 +458,8 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
             ,
         ) = capAutomator.supplyCapConfigs(makeAddr("asset"));
 
-        assertEq(maxCap,        0);
-        assertEq(capGap,     0);
+        assertEq(maxCap,              0);
+        assertEq(capGap,              0);
         assertEq(capIncreaseCooldown, 0);
     }
 
@@ -489,7 +490,7 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
 
         assertEq(maxCap,              10_000_000);
-        assertEq(capGap,           1_000_000);
+        assertEq(capGap,              1_000_000);
         assertEq(capIncreaseCooldown, 12 hours);
 
         vm.prank(authority);
@@ -502,9 +503,154 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
             ,
         ) = capAutomator.borrowCapConfigs(makeAddr("asset"));
 
-        assertEq(maxCap,        0);
-        assertEq(capGap,     0);
+        assertEq(maxCap,              0);
+        assertEq(capGap,              0);
         assertEq(capIncreaseCooldown, 0);
+    }
+
+}
+
+contract CalculateNewCapTests is Test {
+
+    IPoolConfigurator public configurator;
+    IDataProvider     public dataProvider;
+
+    address public owner;
+    address public authority;
+
+    CapAutomator public capAutomator;
+
+    function setUp() public {
+        configurator = new MockPoolConfigurator();
+        dataProvider = new MockDataProvider({
+            _aTokenTotalSupply: 6_900_000,
+            _totalDebt:         3_900_000,
+            _borrowCap:         4_000_000,
+            _supplyCap:         7_000_000
+        });
+
+        owner        = makeAddr("owner");
+        authority    = makeAddr("authority");
+
+        capAutomator = new CapAutomatorHarness(configurator, dataProvider);
+
+        capAutomator.setAuthority(authority);
+        capAutomator.setOwner(owner);
+    }
+
+    function test_calculateNewCap() public {
+        // TODO: Test that in a simple, happy path scenario, everything is set properly
+    }
+
+    function test_calculateNewCap_notConfigured() public {
+        // TODO: if there is no configuration for the updated market, return current supply cap
+    }
+
+    function test_calculateNewCap_sameBlock() public {
+        // TODO: if there is an attempt to update twice in the same block, return current supply cap
+    }
+
+    function test_calculateNewCap_sameCap() public {
+        // TODO: if new cap is the same as current cap, return current supply cap
+    }
+
+    function test_calculateNewCap_closeToMaxCap() public {
+        // TODO: if it's not possible to increase the full gap, increase to the max amount
+    }
+
+    function test_calculateNewCap_aboveMaxCap() public {
+        // TODO: if if the current cap is above max cap, decrease to the max amount
+    }
+
+    function test_calculateNewCap_cooldown() public {
+        // TODO: if there is a second attempt to increase the cap before the cooldown passes, allow only decreases (allow another increase after cooldown passes)
+    }
+}
+
+contract UpdateSupplyCapConfigTests is Test {
+
+    IPoolConfigurator public configurator;
+    IDataProvider     public dataProvider;
+
+    address public owner;
+    address public authority;
+
+    CapAutomator public capAutomator;
+
+    function setUp() public {
+        configurator = new MockPoolConfigurator();
+        dataProvider = new MockDataProvider({
+            _aTokenTotalSupply: 6_900_000,
+            _totalDebt:         3_900_000,
+            _borrowCap:         4_000_000,
+            _supplyCap:         7_000_000
+        });
+
+        owner        = makeAddr("owner");
+        authority    = makeAddr("authority");
+
+        capAutomator = new CapAutomatorHarness(configurator, dataProvider);
+
+        capAutomator.setAuthority(authority);
+        capAutomator.setOwner(owner);
+    }
+
+    function test_updateSupplyCapConfig() public {
+        // TODO: Test that in a simple, happy path scenario, everything is set properly
+    }
+    function test_updateSupplyCapConfig_sameCap() public {
+        // TODO: if for any reason cap should not be updated, return current supply cap
+    }
+    function test_updateSupplyCapConfig_cooldown() public {
+        // TODO: check if update trackers are updated properly on increase and decrease
+    }
+
+}
+
+contract UpdateBorrowCapConfigTests is Test {
+
+    IPoolConfigurator public configurator;
+    IDataProvider     public dataProvider;
+
+    address public owner;
+    address public authority;
+
+    CapAutomator public capAutomator;
+
+    function setUp() public {
+        configurator = new MockPoolConfigurator();
+        dataProvider = new MockDataProvider({
+            _aTokenTotalSupply: 6_900_000,
+            _totalDebt:         3_900_000,
+            _borrowCap:         4_000_000,
+            _supplyCap:         7_000_000
+        });
+
+        owner        = makeAddr("owner");
+        authority    = makeAddr("authority");
+
+        capAutomator = new CapAutomatorHarness(configurator, dataProvider);
+
+        capAutomator.setAuthority(authority);
+        capAutomator.setOwner(owner);
+    }
+
+    function test_updateBorrowCapConfig() public {
+        // TODO: Test that in a simple, happy path scenario, everything is set properly
+    }
+    function test_updateBorrowCapConfig_sameCap() public {
+        // TODO: if for any reason cap should not be updated, return current supply cap
+    }
+    function test_updateBorrowCapConfig_cooldown() public {
+        // TODO: check if update trackers are updated properly on increase and decrease
+    }
+
+}
+
+contract ExecTests is CapAutomatorUnitTestBase {
+
+    function test_exec() public {
+        // TODO Happy path end to end test of update of both borrow and supply cap (still on mocks though)
     }
 
 }
