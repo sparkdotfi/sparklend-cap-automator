@@ -524,16 +524,11 @@ contract CalculateNewCapTests is Test {
     address public owner;
     address public authority;
 
-    CapAutomator public capAutomator;
+    CapAutomatorHarness public capAutomator;
 
     function setUp() public {
         configurator = new MockPoolConfigurator();
-        dataProvider = new MockDataProvider({
-            _aTokenTotalSupply: 6_900_000,
-            _totalDebt:         3_900_000,
-            _borrowCap:         4_000_000,
-            _supplyCap:         7_000_000
-        });
+        dataProvider = new MockDataProvider(0, 0, 0, 0);
 
         owner        = makeAddr("owner");
         authority    = makeAddr("authority");
@@ -545,31 +540,150 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap() public {
-        // TODO: Test that in a simple, happy path scenario, everything is set properly
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 0,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 0
+            }),
+            1_900_000,
+            2_000_000
+        );
+        assertEq(newCap, 2_400_000);
     }
 
     function test_calculateNewCap_notConfigured() public {
-        // TODO: if there is no configuration for the updated market, return current supply cap
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 0,
+                capGap: 0,
+                capIncreaseCooldown: 0,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 0
+            }),
+            1_900_000,
+            2_000_000
+        );
+        assertEq(newCap, 2_000_000);
     }
 
     function test_calculateNewCap_sameBlock() public {
-        // TODO: if there is an attempt to update twice in the same block, return current supply cap
+        vm.roll(100);
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 0,
+                lastUpdateBlock: 99,
+                lastIncreaseTime: 0
+            }),
+            1_900_000,
+            2_000_000
+        );
+        assertEq(newCap, 2_400_000);
+
+        newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 0,
+                lastUpdateBlock: 100,
+                lastIncreaseTime: 0
+            }),
+            1_900_000,
+            2_000_000
+        );
+        assertEq(newCap, 2_000_000);
     }
 
     function test_calculateNewCap_sameCap() public {
-        // TODO: if new cap is the same as current cap, return current supply cap
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 0,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 0
+            }),
+            1_500_000,
+            2_000_000
+        );
+        assertEq(newCap, 2_000_000);
     }
 
     function test_calculateNewCap_closeToMaxCap() public {
-        // TODO: if it's not possible to increase the full gap, increase to the max amount
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 0,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 0
+            }),
+            4_800_000,
+            4_900_000
+        );
+        assertEq(newCap, 5_000_000);
     }
 
     function test_calculateNewCap_aboveMaxCap() public {
-        // TODO: if if the current cap is above max cap, decrease to the max amount
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 0,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 0
+            }),
+            4_800_000,
+            5_200_000
+        );
+        assertEq(newCap, 5_000_000);
     }
 
     function test_calculateNewCap_cooldown() public {
-        // TODO: if there is a second attempt to increase the cap before the cooldown passes, allow only decreases (allow another increase after cooldown passes)
+        vm.warp(12 hours);
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 12 hours,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 12 hours
+            }),
+            1_900_000,
+            2_000_000
+        );
+        assertEq(newCap, 2_000_000);
+
+        newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 12 hours,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 12 hours
+            }),
+            1_200_000,
+            2_000_000
+        );
+        assertEq(newCap, 1_700_000);
+
+        vm.warp(24 hours);
+        newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                maxCap: 5_000_000,
+                capGap: 500_000,
+                capIncreaseCooldown: 12 hours,
+                lastUpdateBlock: 0,
+                lastIncreaseTime: 12 hours
+            }),
+            1_900_000,
+            2_000_000
+        );
+        assertEq(newCap, 2_400_000);
     }
 }
 
