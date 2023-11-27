@@ -22,15 +22,29 @@ contract MockDataProvider is IDataProvider {
         supplyCap         = _supplyCap;
     }
 
+    function setATokenTotalSupply(uint256 _aTokenTotalSupply) external {
+        aTokenTotalSupply = _aTokenTotalSupply;
+    }
+
+    function setTotalDebt(uint256 _totalDebt) external {
+        totalDebt = _totalDebt;
+    }
+
+    function setBorrowCap(uint256 _borrowCap) external {
+        borrowCap = _borrowCap;
+    }
+
+    function setSupplyCap(uint256 _supplyCap) external {
+        supplyCap = _supplyCap;
+    }
+
     function getATokenTotalSupply(address) external view returns (uint256) {
         return aTokenTotalSupply;
     }
 
-
     function getTotalDebt(address) external view returns (uint256) {
         return totalDebt;
     }
-
 
     function getReserveCaps(address) external view returns (uint256, uint256) {
         return (borrowCap, supplyCap);
