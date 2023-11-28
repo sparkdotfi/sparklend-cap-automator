@@ -14,11 +14,12 @@ import { CapAutomatorHarness }  from "./harnesses/CapAutomatorHarness.sol";
 
 contract CapAutomatorUnitTestBase is Test {
 
-    IPoolConfigurator public configurator;
-    IDataProvider     public dataProvider;
+    MockPoolConfigurator public configurator;
+    MockDataProvider     public dataProvider;
 
     address public owner;
     address public authority;
+    address public asset;
 
     CapAutomator public capAutomator;
 
@@ -31,8 +32,9 @@ contract CapAutomatorUnitTestBase is Test {
             _supplyCap:         7_000_000
         });
 
-        owner        = makeAddr("owner");
-        authority    = makeAddr("authority");
+        owner     = makeAddr("owner");
+        authority = makeAddr("authority");
+        asset     = makeAddr("asset");
 
         capAutomator = new CapAutomator(configurator, dataProvider);
 
@@ -530,8 +532,8 @@ contract CalculateNewCapTests is Test {
         configurator = new MockPoolConfigurator();
         dataProvider = new MockDataProvider(0, 0, 0, 0);
 
-        owner        = makeAddr("owner");
-        authority    = makeAddr("authority");
+        owner     = makeAddr("owner");
+        authority = makeAddr("authority");
 
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
@@ -685,19 +687,25 @@ contract CalculateNewCapTests is Test {
         );
         assertEq(newCap, 2_400_000);
     }
+
 }
 
 contract UpdateSupplyCapConfigTests is Test {
 
-    IPoolConfigurator public configurator;
-    IDataProvider     public dataProvider;
+    MockPoolConfigurator public configurator;
+    MockDataProvider     public dataProvider;
 
     address public owner;
     address public authority;
+    address public asset;
 
-    CapAutomator public capAutomator;
+    CapAutomatorHarness public capAutomator;
 
     function setUp() public {
+        owner     = makeAddr("owner");
+        authority = makeAddr("authority");
+        asset     = makeAddr("asset");
+
         configurator = new MockPoolConfigurator();
         dataProvider = new MockDataProvider({
             _aTokenTotalSupply: 6_900_000,
@@ -705,9 +713,7 @@ contract UpdateSupplyCapConfigTests is Test {
             _borrowCap:         4_000_000,
             _supplyCap:         7_000_000
         });
-
-        owner        = makeAddr("owner");
-        authority    = makeAddr("authority");
+        configurator.setSupplyCap(asset, 7_000_000);
 
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
@@ -716,28 +722,68 @@ contract UpdateSupplyCapConfigTests is Test {
     }
 
     function test_updateSupplyCapConfig() public {
-        // TODO: Test that in a simple, happy path scenario, everything is set properly
+        vm.roll(100);
+        vm.warp(100_000);
+
+        vm.prank(authority);
+        capAutomator.setSupplyCapConfig({
+            asset: asset,
+            maxCap: 10_000_000,
+            capGap: 500_000,
+            capIncreaseCooldown: 0
+        });
+
+        assertEq(configurator.supplyCap(asset), 7_000_000);
+
+        (,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore) = capAutomator.supplyCapConfigs(asset);
+        assertEq(lastUpdateBlockBefore,  0);
+        assertEq(lastIncreaseTimeBefore, 0);
+
+        vm.expectCall(address(configurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400_000))), 1);
+        assertEq(capAutomator._updateSupplyCapConfigExternal(asset), 7_400_000);
+
+        assertEq(configurator.supplyCap(asset), 7_400_000);
+
+        (,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter) = capAutomator.supplyCapConfigs(asset);
+        assertEq(lastUpdateBlockAfter,  100);
+        assertEq(lastIncreaseTimeAfter, 100_000);
     }
+
     function test_updateSupplyCapConfig_sameCap() public {
-        // TODO: if for any reason cap should not be updated, return current supply cap
-    }
-    function test_updateSupplyCapConfig_cooldown() public {
-        // TODO: check if update trackers are updated properly on increase and decrease
+        vm.prank(authority);
+        capAutomator.setSupplyCapConfig({
+            asset: asset,
+            maxCap: 10_000_000,
+            capGap: 100_000,
+            capIncreaseCooldown: 0
+        });
+
+        assertEq(configurator.supplyCap(asset), 7_000_000);
+
+        vm.expectCall(address(configurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_000_000))), 0);
+        assertEq(capAutomator._updateSupplyCapConfigExternal(asset), 7_000_000);
+
+        assertEq(configurator.supplyCap(asset), 7_000_000);
     }
 
 }
 
 contract UpdateBorrowCapConfigTests is Test {
 
-    IPoolConfigurator public configurator;
-    IDataProvider     public dataProvider;
+    MockPoolConfigurator public configurator;
+    MockDataProvider     public dataProvider;
 
     address public owner;
     address public authority;
+    address public asset;
 
-    CapAutomator public capAutomator;
+    CapAutomatorHarness public capAutomator;
 
     function setUp() public {
+        owner     = makeAddr("owner");
+        authority = makeAddr("authority");
+        asset     = makeAddr("asset");
+
         configurator = new MockPoolConfigurator();
         dataProvider = new MockDataProvider({
             _aTokenTotalSupply: 6_900_000,
@@ -745,9 +791,7 @@ contract UpdateBorrowCapConfigTests is Test {
             _borrowCap:         4_000_000,
             _supplyCap:         7_000_000
         });
-
-        owner        = makeAddr("owner");
-        authority    = makeAddr("authority");
+        configurator.setBorrowCap(asset, 4_000_000);
 
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
@@ -756,13 +800,48 @@ contract UpdateBorrowCapConfigTests is Test {
     }
 
     function test_updateBorrowCapConfig() public {
-        // TODO: Test that in a simple, happy path scenario, everything is set properly
+        vm.roll(100);
+        vm.warp(100_000);
+
+        vm.prank(authority);
+        capAutomator.setBorrowCapConfig({
+            asset: asset,
+            maxCap: 10_000_000,
+            capGap: 500_000,
+            capIncreaseCooldown: 0
+        });
+
+        assertEq(configurator.borrowCap(asset), 4_000_000);
+
+        (,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore) = capAutomator.borrowCapConfigs(asset);
+        assertEq(lastUpdateBlockBefore,  0);
+        assertEq(lastIncreaseTimeBefore, 0);
+
+        vm.expectCall(address(configurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400_000))), 1);
+        assertEq(capAutomator._updateBorrowCapConfigExternal(asset), 4_400_000);
+
+        assertEq(configurator.borrowCap(asset), 4_400_000);
+
+        (,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter) = capAutomator.borrowCapConfigs(asset);
+        assertEq(lastUpdateBlockAfter,  100);
+        assertEq(lastIncreaseTimeAfter, 100_000);
     }
+
     function test_updateBorrowCapConfig_sameCap() public {
-        // TODO: if for any reason cap should not be updated, return current supply cap
-    }
-    function test_updateBorrowCapConfig_cooldown() public {
-        // TODO: check if update trackers are updated properly on increase and decrease
+        vm.prank(authority);
+        capAutomator.setBorrowCapConfig({
+            asset: asset,
+            maxCap: 10_000_000,
+            capGap: 100_000,
+            capIncreaseCooldown: 0
+        });
+
+        assertEq(configurator.borrowCap(asset), 4_000_000);
+
+        vm.expectCall(address(configurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_000_000))), 0);
+        assertEq(capAutomator._updateBorrowCapConfigExternal(asset), 4_000_000);
+
+        assertEq(configurator.borrowCap(asset), 4_000_000);
     }
 
 }
@@ -770,7 +849,40 @@ contract UpdateBorrowCapConfigTests is Test {
 contract ExecTests is CapAutomatorUnitTestBase {
 
     function test_exec() public {
-        // TODO Happy path end to end test of update of both borrow and supply cap (still on mocks though)
+        configurator.setSupplyCap(asset, 7_000_000);
+        configurator.setBorrowCap(asset, 4_000_000);
+
+        vm.roll(100);
+        vm.warp(100_000);
+
+        vm.startPrank(authority);
+        capAutomator.setSupplyCapConfig({
+            asset: asset,
+            maxCap: 10_000_000,
+            capGap: 400_000,
+            capIncreaseCooldown: 0
+        });
+        capAutomator.setBorrowCapConfig({
+            asset: asset,
+            maxCap: 8_000_000,
+            capGap: 300_000,
+            capIncreaseCooldown: 0
+        });
+        vm.stopPrank();
+
+        assertEq(configurator.supplyCap(asset), 7_000_000);
+        assertEq(configurator.borrowCap(asset), 4_000_000);
+
+        vm.expectCall(address(configurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300_000))), 1);
+        vm.expectCall(address(configurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200_000))), 1);
+
+        (uint256 newSupplyCap, uint256 newBorrowCap) = capAutomator.exec(asset);
+
+        assertEq(newSupplyCap, 7_300_000);
+        assertEq(newBorrowCap, 4_200_000);
+
+        assertEq(configurator.supplyCap(asset), 7_300_000);
+        assertEq(configurator.borrowCap(asset), 4_200_000);
     }
 
 }

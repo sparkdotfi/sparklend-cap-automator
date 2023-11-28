@@ -5,15 +5,15 @@ import { IPoolConfigurator } from "../../src/interfaces/IPoolConfigurator.sol";
 
 contract MockPoolConfigurator is IPoolConfigurator {
 
-    mapping(address => uint256) supplyCap;
-    mapping(address => uint256) borrowCap;
+    mapping(address => uint256) public supplyCap;
+    mapping(address => uint256) public borrowCap;
 
     function setSupplyCap(address asset, uint256 newSupplyCap) external {
-        borrowCap[asset] = newSupplyCap;
+        supplyCap[asset] = newSupplyCap;
     }
 
     function setBorrowCap(address asset, uint256 newBorrowCap) external {
-        supplyCap[asset] = newBorrowCap;
+        borrowCap[asset] = newBorrowCap;
     }
 
 }
