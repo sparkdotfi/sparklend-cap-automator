@@ -81,6 +81,13 @@ contract CapAutomator is ICapAutomator {
             supplyCapConfigs[asset].lastUpdateBlock,
             supplyCapConfigs[asset].lastIncreaseTime
         );
+
+        emit SetSupplyCapConfig(
+            asset,
+            maxCap,
+            capGap,
+            capIncreaseCooldown
+        );
     }
 
     function setBorrowCapConfig(
@@ -98,14 +105,25 @@ contract CapAutomator is ICapAutomator {
             borrowCapConfigs[asset].lastUpdateBlock,
             borrowCapConfigs[asset].lastIncreaseTime
         );
+
+        emit SetBorrowCapConfig(
+            asset,
+            maxCap,
+            capGap,
+            capIncreaseCooldown
+        );
     }
 
     function removeSupplyCapConfig(address asset) external auth {
         delete supplyCapConfigs[asset];
+
+        emit RemoveSupplyCapConfig(asset);
     }
 
     function removeBorrowCapConfig(address asset) external auth {
         delete borrowCapConfigs[asset];
+
+        emit RemoveBorrowCapConfig(asset);
     }
 
     /**********************************************************************************************/
@@ -172,6 +190,8 @@ contract CapAutomator is ICapAutomator {
 
         if(newSupplyCap == currentSupplyCap) return currentSupplyCap;
 
+        emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
+
         poolConfigurator.setSupplyCap(asset, newSupplyCap);
 
         if (newSupplyCap > currentSupplyCap) {
@@ -195,6 +215,8 @@ contract CapAutomator is ICapAutomator {
         );
 
         if(newBorrowCap == currentBorrowCap) return currentBorrowCap;
+
+        emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
         poolConfigurator.setBorrowCap(asset, newBorrowCap);
 
