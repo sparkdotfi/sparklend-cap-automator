@@ -24,7 +24,51 @@ interface ICapAutomator {
      */
     event SetAuthority(address indexed oldAuthority, address indexed newAuthority);
 
-    // TODO Events
+    /**
+     *  @dev Event to log the setting of a new supply cap config.
+     *  @param asset The address of the asset for which the config was set
+     *  @param maxCap Maximum allowed supply cap
+     *  @param capGap A gap between the supply and the supply cap that is being maintained
+     *  @param capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     */
+    event SetSupplyCapConfig(address indexed asset, uint256 maxCap, uint256 capGap, uint256 capIncreaseCooldown);
+
+    /**
+     *  @dev Event to log the setting of a new borrow cap config.
+     *  @param asset The address of the asset for which the config was set
+     *  @param maxCap Maximum allowed borrow cap
+     *  @param capGap A gap between the borrows and the borrow cap that is being maintained
+     *  @param capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     */
+    event SetBorrowCapConfig(address indexed asset, uint256 maxCap, uint256 capGap, uint256 capIncreaseCooldown);
+
+    /**
+     *  @dev Event to log the removing of a supply cap config.
+     *  @param asset The address of the asset for which supply config was removed
+     */
+    event RemoveSupplyCapConfig(address indexed asset);
+
+    /**
+     *  @dev Event to log the removing of a borrow cap config.
+     *  @param asset The address of the asset for which supply borrow was removed
+     */
+    event RemoveBorrowCapConfig(address indexed asset);
+
+    /**
+     *  @dev Event to log the update of the supply cap.
+     *  @param asset The address
+     *  @param oldSupplyCap The old supply cap
+     *  @param newSupplyCap The newly set supply cap
+     */
+    event UpdateSupplyCap(address indexed asset, uint256 oldSupplyCap, uint256 newSupplyCap);
+
+    /**
+     *  @dev Event to log the update of the borrow cap.
+     *  @param asset The address
+     *  @param oldBorrowCap The old borrow cap
+     *  @param newBorrowCap The newly set borrow cap
+     */
+    event UpdateBorrowCap(address indexed asset, uint256 oldBorrowCap, uint256 newBorrowCap);
 
     /**********************************************************************************************/
     /*** Storage Variables                                                                      ***/
