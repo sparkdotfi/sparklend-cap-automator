@@ -805,9 +805,9 @@ contract UpdateBorrowCapConfigTests is Test {
 
         vm.prank(authority);
         capAutomator.setBorrowCapConfig({
-            asset: asset,
-            maxCap: 10_000_000,
-            capGap: 500_000,
+            asset:               asset,
+            maxCap:              10_000_000,
+            capGap:              500_000,
             capIncreaseCooldown: 0
         });
 
@@ -830,9 +830,9 @@ contract UpdateBorrowCapConfigTests is Test {
     function test_updateBorrowCapConfig_sameCap() public {
         vm.prank(authority);
         capAutomator.setBorrowCapConfig({
-            asset: asset,
-            maxCap: 10_000_000,
-            capGap: 100_000,
+            asset:               asset,
+            maxCap:              10_000_000,
+            capGap:              100_000,
             capIncreaseCooldown: 0
         });
 
@@ -857,15 +857,15 @@ contract ExecTests is CapAutomatorUnitTestBase {
 
         vm.startPrank(authority);
         capAutomator.setSupplyCapConfig({
-            asset: asset,
-            maxCap: 10_000_000,
-            capGap: 400_000,
+            asset:               asset,
+            maxCap:              10_000_000,
+            capGap:              400_000,
             capIncreaseCooldown: 0
         });
         capAutomator.setBorrowCapConfig({
-            asset: asset,
-            maxCap: 8_000_000,
-            capGap: 300_000,
+            asset:               asset,
+            maxCap:              8_000_000,
+            capGap:              300_000,
             capIncreaseCooldown: 0
         });
         vm.stopPrank();
@@ -967,9 +967,9 @@ contract EventTests is CapAutomatorUnitTestBase {
     function test_UpdateSupplyCap() public {
         vm.prank(authority);
         capAutomator.setSupplyCapConfig({
-            asset: asset,
-            maxCap: 10_000_000,
-            capGap: 400_000,
+            asset:               asset,
+            maxCap:              10_000_000,
+            capGap:              400_000,
             capIncreaseCooldown: 0
         });
 
@@ -981,9 +981,9 @@ contract EventTests is CapAutomatorUnitTestBase {
     function test_UpdateBorrowCap() public {
         vm.prank(authority);
         capAutomator.setBorrowCapConfig({
-            asset: asset,
-            maxCap: 8_000_000,
-            capGap: 300_000,
+            asset:               asset,
+            maxCap:              8_000_000,
+            capGap:              300_000,
             capIncreaseCooldown: 0
         });
 
