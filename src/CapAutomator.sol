@@ -3,8 +3,13 @@ pragma solidity ^0.8.13;
 
 import { IPoolConfigurator } from "./interfaces/IPoolConfigurator.sol";
 import { IDataProvider }     from "./interfaces/IDataProvider.sol";
+import { ICapAutomator }     from "./interfaces/ICapAutomator.sol";
 
-contract CapAutomator {
+contract CapAutomator is ICapAutomator {
+
+    /**********************************************************************************************/
+    /*** Declarations and Constructor                                                           ***/
+    /**********************************************************************************************/
 
     struct CapConfig {
         uint256 maxCap;
@@ -14,20 +19,24 @@ contract CapAutomator {
         uint48  lastIncreaseTime;    // seconds
     }
 
-    mapping(address => CapConfig) public supplyCapConfigs;
-    mapping(address => CapConfig) public borrowCapConfigs;
+    mapping(address => CapConfig) public override supplyCapConfigs;
+    mapping(address => CapConfig) public override borrowCapConfigs;
 
-    IPoolConfigurator public immutable poolConfigurator;
-    IDataProvider     public immutable dataProvider;
+    IPoolConfigurator public override immutable poolConfigurator;
+    IDataProvider     public override immutable dataProvider;
 
-    address public owner;
-    address public authority;
+    address public override owner;
+    address public override authority;
 
     constructor(IPoolConfigurator _poolConfigurator, IDataProvider _dataProvider) {
         poolConfigurator = _poolConfigurator;
         dataProvider     = _dataProvider;
         owner            = msg.sender;
     }
+
+    /**********************************************************************************************/
+    /*** Modifiers                                                                              ***/
+    /**********************************************************************************************/
 
     modifier onlyOwner {
         require(msg.sender == owner, "CapAutomator/only-owner");
@@ -39,21 +48,23 @@ contract CapAutomator {
         _;
     }
 
-    function setOwner(address owner_) external onlyOwner {
-        owner = owner_;
+    /**********************************************************************************************/
+    /*** Owner Functions                                                                        ***/
+    /**********************************************************************************************/
+
+    function setOwner(address _owner) external onlyOwner {
+        emit SetOwner(owner, _owner);
+        owner = _owner;
     }
 
-    function setAuthority(address authority_) external onlyOwner {
-        authority = authority_;
+    function setAuthority(address _authority) external onlyOwner {
+        emit SetAuthority(authority, _authority);
+        authority = _authority;
     }
 
-    function _validateCapConfig(
-        uint256 maxCap,
-        uint256 capIncreaseCooldown
-    ) internal pure {
-        require(maxCap > 0,                       "CapAutomator/invalid-cap");
-        require(capIncreaseCooldown <= 2**48 - 1, "CapAutomator/invalid-cooldown");
-    }
+    /**********************************************************************************************/
+    /*** Auth Functions                                                                         ***/
+    /**********************************************************************************************/
 
     function setSupplyCapConfig(
         address asset,
@@ -95,6 +106,27 @@ contract CapAutomator {
 
     function removeBorrowCapConfig(address asset) external auth {
         delete borrowCapConfigs[asset];
+    }
+
+    /**********************************************************************************************/
+    /*** Public Functions                                                                       ***/
+    /**********************************************************************************************/
+
+    function exec(address asset) external returns (uint256 newSupplyCap, uint256 newBorrowCap){
+        newSupplyCap = _updateSupplyCapConfig(asset);
+        newBorrowCap = _updateBorrowCapConfig(asset);
+    }
+
+    /**********************************************************************************************/
+    /*** Internal Functions                                                                     ***/
+    /**********************************************************************************************/
+
+    function _validateCapConfig(
+        uint256 maxCap,
+        uint256 capIncreaseCooldown
+    ) internal pure {
+        require(maxCap > 0,                       "CapAutomator/invalid-cap");
+        require(capIncreaseCooldown <= 2**48 - 1, "CapAutomator/invalid-cooldown");
     }
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -176,8 +208,4 @@ contract CapAutomator {
         return newBorrowCap;
     }
 
-    function exec(address asset) external returns (uint256 newSupplyCap, uint256 newBorrowCap){
-        newSupplyCap = _updateSupplyCapConfig(asset);
-        newBorrowCap = _updateBorrowCapConfig(asset);
-    }
 }
