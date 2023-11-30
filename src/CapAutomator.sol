@@ -143,8 +143,8 @@ contract CapAutomator is ICapAutomator {
         uint256 max,
         uint256 increaseCooldown
     ) internal pure {
-        require(max > 0,                       "CapAutomator/invalid-cap");
-        require(increaseCooldown <= 2**48 - 1, "CapAutomator/invalid-cooldown");
+        require(max > 0,                              "CapAutomator/invalid-cap");
+        require(increaseCooldown <= type(uint48).max, "CapAutomator/invalid-cooldown");
     }
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
