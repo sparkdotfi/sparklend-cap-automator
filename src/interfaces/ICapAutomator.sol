@@ -27,20 +27,20 @@ interface ICapAutomator {
     /**
      *  @dev Event to log the setting of a new supply cap config.
      *  @param asset The address of the asset for which the config was set
-     *  @param maxCap Maximum allowed supply cap
-     *  @param capGap A gap between the supply and the supply cap that is being maintained
-     *  @param capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     *  @param max Maximum allowed supply cap
+     *  @param gap A gap between the supply and the supply cap that is being maintained
+     *  @param increaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
      */
-    event SetSupplyCapConfig(address indexed asset, uint256 maxCap, uint256 capGap, uint256 capIncreaseCooldown);
+    event SetSupplyCapConfig(address indexed asset, uint256 max, uint256 gap, uint256 increaseCooldown);
 
     /**
      *  @dev Event to log the setting of a new borrow cap config.
      *  @param asset The address of the asset for which the config was set
-     *  @param maxCap Maximum allowed borrow cap
-     *  @param capGap A gap between the borrows and the borrow cap that is being maintained
-     *  @param capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     *  @param max Maximum allowed borrow cap
+     *  @param gap A gap between the borrows and the borrow cap that is being maintained
+     *  @param increaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
      */
-    event SetBorrowCapConfig(address indexed asset, uint256 maxCap, uint256 capGap, uint256 capIncreaseCooldown);
+    event SetBorrowCapConfig(address indexed asset, uint256 max, uint256 gap, uint256 increaseCooldown);
 
     /**
      *  @dev Event to log the removing of a supply cap config.
@@ -101,16 +101,16 @@ interface ICapAutomator {
     /**
      *  @dev Returns current configuration for automatic supply cap management
      *  @param asset The address of the asset which config is going to be returned
-     *  @return maxCap Maximum allowed supply cap
-     *  @return capGap A gap between the supply and the supply cap that is being maintained
-     *  @return capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     *  @return max Maximum allowed supply cap
+     *  @return gap A gap between the supply and the supply cap that is being maintained
+     *  @return increaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
      *  @return lastUpdateBlock The block of the last cap update
      *  @return lastIncreaseTime The timestamp of the last cap increase
      */
     function supplyCapConfigs(address asset) external view returns (
-        uint256 maxCap,
-        uint256 capGap,
-        uint48  capIncreaseCooldown,
+        uint256 max,
+        uint256 gap,
+        uint48  increaseCooldown,
         uint48  lastUpdateBlock,
         uint48  lastIncreaseTime
     );
@@ -118,16 +118,16 @@ interface ICapAutomator {
     /**
      *  @dev Returns current configuration for automatic borrow cap management
      *  @param asset The address of the asset which config is going to be returned
-     *  @return maxCap Maximum allowed borrow cap
-     *  @return capGap A gap between the borrows and the borrow cap that is being maintained
-     *  @return capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     *  @return max Maximum allowed borrow cap
+     *  @return gap A gap between the borrows and the borrow cap that is being maintained
+     *  @return increaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
      *  @return lastUpdateBlock The block of the last cap update
      *  @return lastIncreaseTime The timestamp of the last cap increase
      */
     function borrowCapConfigs(address asset) external view returns (
-        uint256 maxCap,
-        uint256 capGap,
-        uint48  capIncreaseCooldown,
+        uint256 max,
+        uint256 gap,
+        uint48  increaseCooldown,
         uint48  lastUpdateBlock,
         uint48  lastIncreaseTime
     );
@@ -155,29 +155,29 @@ interface ICapAutomator {
     /**
      *  @dev Function creating (or re-setting) a configuration for automatic supply cap management
      *  @param asset The address of the asset that is going to be managed
-     *  @param maxCap Maximum allowed supply cap
-     *  @param capGap A gap between the supply and the supply cap that is being maintained
-     *  @param capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     *  @param max Maximum allowed supply cap
+     *  @param gap A gap between the supply and the supply cap that is being maintained
+     *  @param increaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
      */
     function setSupplyCapConfig(
         address asset,
-        uint256 maxCap,
-        uint256 capGap,
-        uint256 capIncreaseCooldown
+        uint256 max,
+        uint256 gap,
+        uint256 increaseCooldown
     ) external;
 
     /**
      *  @dev Function creating (or re-setting) a configuration for automatic borrow cap management
      *  @param asset The address of the asset that is going to be managed
-     *  @param maxCap Maximum allowed borrow cap
-     *  @param capGap A gap between the borrows and the borrow cap that is being maintained
-     *  @param capIncreaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
+     *  @param max Maximum allowed borrow cap
+     *  @param gap A gap between the borrows and the borrow cap that is being maintained
+     *  @param increaseCooldown A mimimum period of time that needs to elapse between consequent cap increases
      */
     function setBorrowCapConfig(
         address asset,
-        uint256 maxCap,
-        uint256 capGap,
-        uint256 capIncreaseCooldown
+        uint256 max,
+        uint256 gap,
+        uint256 increaseCooldown
     ) external;
 
     /**

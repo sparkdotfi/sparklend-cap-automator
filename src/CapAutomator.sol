@@ -12,9 +12,9 @@ contract CapAutomator is ICapAutomator {
     /**********************************************************************************************/
 
     struct CapConfig {
-        uint256 maxCap;
-        uint256 capGap;
-        uint48  capIncreaseCooldown; // seconds
+        uint256 max;
+        uint256 gap;
+        uint48  increaseCooldown; // seconds
         uint48  lastUpdateBlock;     // blocks
         uint48  lastIncreaseTime;    // seconds
     }
@@ -68,49 +68,49 @@ contract CapAutomator is ICapAutomator {
 
     function setSupplyCapConfig(
         address asset,
-        uint256 maxCap,
-        uint256 capGap,
-        uint256 capIncreaseCooldown
+        uint256 max,
+        uint256 gap,
+        uint256 increaseCooldown
     ) external auth {
-        _validateCapConfig(maxCap, capIncreaseCooldown);
+        _validateCapConfig(max, increaseCooldown);
 
         supplyCapConfigs[asset] = CapConfig(
-            maxCap,
-            capGap,
-            uint48(capIncreaseCooldown),
+            max,
+            gap,
+            uint48(increaseCooldown),
             supplyCapConfigs[asset].lastUpdateBlock,
             supplyCapConfigs[asset].lastIncreaseTime
         );
 
         emit SetSupplyCapConfig(
             asset,
-            maxCap,
-            capGap,
-            capIncreaseCooldown
+            max,
+            gap,
+            increaseCooldown
         );
     }
 
     function setBorrowCapConfig(
         address asset,
-        uint256 maxCap,
-        uint256 capGap,
-        uint256 capIncreaseCooldown
+        uint256 max,
+        uint256 gap,
+        uint256 increaseCooldown
     ) external auth {
-        _validateCapConfig(maxCap, capIncreaseCooldown);
+        _validateCapConfig(max, increaseCooldown);
 
         borrowCapConfigs[asset] = CapConfig(
-            maxCap,
-            capGap,
-            uint48(capIncreaseCooldown),
+            max,
+            gap,
+            uint48(increaseCooldown),
             borrowCapConfigs[asset].lastUpdateBlock,
             borrowCapConfigs[asset].lastIncreaseTime
         );
 
         emit SetBorrowCapConfig(
             asset,
-            maxCap,
-            capGap,
-            capIncreaseCooldown
+            max,
+            gap,
+            increaseCooldown
         );
     }
 
@@ -140,11 +140,11 @@ contract CapAutomator is ICapAutomator {
     /**********************************************************************************************/
 
     function _validateCapConfig(
-        uint256 maxCap,
-        uint256 capIncreaseCooldown
+        uint256 max,
+        uint256 increaseCooldown
     ) internal pure {
-        require(maxCap > 0,                       "CapAutomator/invalid-cap");
-        require(capIncreaseCooldown <= 2**48 - 1, "CapAutomator/invalid-cooldown");
+        require(max > 0,                       "CapAutomator/invalid-cap");
+        require(increaseCooldown <= 2**48 - 1, "CapAutomator/invalid-cooldown");
     }
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -156,23 +156,23 @@ contract CapAutomator is ICapAutomator {
         uint256 currentState,
         uint256 currentCap
     ) internal view returns (uint256) {
-        uint256 maxCap = capConfig.maxCap;
+        uint256 max = capConfig.max;
 
-        if(maxCap == 0) return currentCap;
+        if(max == 0) return currentCap;
 
-        uint48 capIncreaseCooldown = capConfig.capIncreaseCooldown;
+        uint48 increaseCooldown = capConfig.increaseCooldown;
         uint48 lastUpdateBlock     = capConfig.lastUpdateBlock;
         uint48 lastIncreaseTime    = capConfig.lastIncreaseTime;
 
         if (lastUpdateBlock == block.number) return currentCap;
 
-        uint256 capGap = capConfig.capGap;
+        uint256 gap = capConfig.gap;
 
-        uint256 newCap =_min(currentState + capGap, maxCap);
+        uint256 newCap =_min(currentState + gap, max);
 
         if(
             newCap > currentCap
-            && block.timestamp < (lastIncreaseTime + capIncreaseCooldown)
+            && block.timestamp < (lastIncreaseTime + increaseCooldown)
         ) return currentCap;
 
         return newCap;
