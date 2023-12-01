@@ -20,7 +20,6 @@ contract CapAutomatorUnitTestBase is Test {
     MockDataProvider     public dataProvider;
 
     address public owner;
-    address public authority;
     address public asset;
 
     CapAutomator public capAutomator;
@@ -35,12 +34,10 @@ contract CapAutomatorUnitTestBase is Test {
         });
 
         owner     = makeAddr("owner");
-        authority = makeAddr("authority");
         asset     = makeAddr("asset");
 
         capAutomator = new CapAutomator(configurator, dataProvider);
 
-        capAutomator.setAuthority(authority);
         capAutomator.transferOwnership(owner);
     }
 
@@ -106,30 +103,11 @@ contract TransferOwnershipTests is CapAutomatorUnitTestBase {
 
 }
 
-contract SetAuthorityTests is CapAutomatorUnitTestBase {
-
-    function test_setAuthority_noAuth() public {
-        vm.prank(makeAddr("notOwner"));
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
-        capAutomator.setAuthority(makeAddr("newAuthority"));
-    }
-
-    function test_setAuthority() public {
-        address newAuthority = makeAddr("newAuthority");
-        assertEq(capAutomator.authority(), address(authority));
-
-        vm.prank(owner);
-        capAutomator.setAuthority(newAuthority);
-
-        assertEq(capAutomator.authority(), newAuthority);
-    }
-
-}
-
 contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setSupplyCapConfig_noAuth() public {
-        vm.expectRevert("CapAutomator/not-authorized");
+        vm.prank(makeAddr("notOwner"));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
         capAutomator.setSupplyCapConfig(
             asset,
             10_000_000,
@@ -140,7 +118,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setSupplyCapConfig_invalidCooldown() public {
         vm.expectRevert("CapAutomator/invalid-cooldown");
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             10_000_000,
@@ -151,7 +129,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setSupplyCapConfig_invalidCap() public {
         vm.expectRevert("CapAutomator/invalid-cap");
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             0,
@@ -175,7 +153,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlock,     0);
         assertEq(lastIncreaseTime,    0);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             10_000_000,
@@ -200,7 +178,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
     }
 
     function test_setSupplyCapConfig_reconfigure() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             10_000_000,
@@ -219,7 +197,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(gap,              1_000_000);
         assertEq(increaseCooldown, 12 hours);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             13_000_000,
@@ -240,7 +218,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
     }
 
     function test_setSupplyCapConfig_preserveUpdateTrackers() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             10_000_000,
@@ -269,7 +247,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         assertNotEq(postExecUpdateBlock,  0);
         assertNotEq(postExecIncreaseTime, 0);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             20_000_000,
@@ -292,7 +270,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
 contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setBorrowCapConfig_noAuth() public {
-        vm.expectRevert("CapAutomator/not-authorized");
+        vm.prank(makeAddr("notOwner"));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
         capAutomator.setBorrowCapConfig(
             asset,
             10_000_000,
@@ -303,7 +282,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setBorrowCapConfig_invalidCooldown() public {
         vm.expectRevert("CapAutomator/invalid-cooldown");
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             10_000_000,
@@ -314,7 +293,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setBorrowCapConfig_invalidCap() public {
         vm.expectRevert("CapAutomator/invalid-cap");
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             0,
@@ -338,7 +317,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlock,     0);
         assertEq(lastIncreaseTime,    0);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             10_000_000,
@@ -362,7 +341,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
     }
 
     function test_setBorrowCapConfig_reconfigure() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             10_000_000,
@@ -381,7 +360,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(gap,              1_000_000);
         assertEq(increaseCooldown, 12 hours);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             13_000_000,
@@ -402,7 +381,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
     }
 
     function test_setBorrowCapConfig_preserveUpdateTrackers() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             10_000_000,
@@ -431,7 +410,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         assertNotEq(postExecUpdateBlock,  0);
         assertNotEq(postExecIncreaseTime, 0);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             20_000_000,
@@ -454,13 +433,14 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
 contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_removeSupplyCapConfig_noAuth() public {
-        vm.expectRevert("CapAutomator/not-authorized");
+        vm.prank(makeAddr("notOwner"));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
         capAutomator.removeSupplyCapConfig(asset);
     }
 
     function test_removeSupplyCapConfig() public {
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
             10_000_000,
@@ -479,7 +459,7 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(gap,              1_000_000);
         assertEq(increaseCooldown, 12 hours);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.removeSupplyCapConfig(asset);
 
         (
@@ -499,13 +479,14 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
 contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_removeBorrowCapConfig_noAuth() public {
-        vm.expectRevert("CapAutomator/not-authorized");
+        vm.prank(makeAddr("notOwner"));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
         capAutomator.removeBorrowCapConfig(asset);
     }
 
     function test_removeBorrowCapConfig() public {
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
             10_000_000,
@@ -524,7 +505,7 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(gap,              1_000_000);
         assertEq(increaseCooldown, 12 hours);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.removeBorrowCapConfig(asset);
 
         (
@@ -547,7 +528,6 @@ contract CalculateNewCapTests is Test {
     IDataProvider     public dataProvider;
 
     address public owner;
-    address public authority;
 
     CapAutomatorHarness public capAutomator;
 
@@ -556,11 +536,9 @@ contract CalculateNewCapTests is Test {
         dataProvider = new MockDataProvider(0, 0, 0, 0);
 
         owner     = makeAddr("owner");
-        authority = makeAddr("authority");
 
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
-        capAutomator.setAuthority(authority);
         capAutomator.transferOwnership(owner);
     }
 
@@ -719,14 +697,12 @@ contract UpdateSupplyCapConfigTests is Test {
     MockDataProvider     public dataProvider;
 
     address public owner;
-    address public authority;
     address public asset;
 
     CapAutomatorHarness public capAutomator;
 
     function setUp() public {
         owner     = makeAddr("owner");
-        authority = makeAddr("authority");
         asset     = makeAddr("asset");
 
         configurator = new MockPoolConfigurator();
@@ -740,7 +716,6 @@ contract UpdateSupplyCapConfigTests is Test {
 
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
-        capAutomator.setAuthority(authority);
         capAutomator.transferOwnership(owner);
     }
 
@@ -748,7 +723,7 @@ contract UpdateSupplyCapConfigTests is Test {
         vm.roll(100);
         vm.warp(100_000);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig({
             asset: asset,
             max: 10_000_000,
@@ -773,7 +748,7 @@ contract UpdateSupplyCapConfigTests is Test {
     }
 
     function test_updateSupplyCapConfig_sameCap() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig({
             asset: asset,
             max: 10_000_000,
@@ -797,14 +772,12 @@ contract UpdateBorrowCapConfigTests is Test {
     MockDataProvider     public dataProvider;
 
     address public owner;
-    address public authority;
     address public asset;
 
     CapAutomatorHarness public capAutomator;
 
     function setUp() public {
         owner     = makeAddr("owner");
-        authority = makeAddr("authority");
         asset     = makeAddr("asset");
 
         configurator = new MockPoolConfigurator();
@@ -818,7 +791,6 @@ contract UpdateBorrowCapConfigTests is Test {
 
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
-        capAutomator.setAuthority(authority);
         capAutomator.transferOwnership(owner);
     }
 
@@ -826,7 +798,7 @@ contract UpdateBorrowCapConfigTests is Test {
         vm.roll(100);
         vm.warp(100_000);
 
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig({
             asset:               asset,
             max:              10_000_000,
@@ -851,7 +823,7 @@ contract UpdateBorrowCapConfigTests is Test {
     }
 
     function test_updateBorrowCapConfig_sameCap() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig({
             asset:               asset,
             max:              10_000_000,
@@ -878,7 +850,7 @@ contract ExecTests is CapAutomatorUnitTestBase {
         vm.roll(100);
         vm.warp(100_000);
 
-        vm.startPrank(authority);
+        vm.startPrank(owner);
         capAutomator.setSupplyCapConfig({
             asset:               asset,
             max:              10_000_000,
@@ -912,7 +884,6 @@ contract ExecTests is CapAutomatorUnitTestBase {
 
 contract EventTests is CapAutomatorUnitTestBase {
     event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
-    event SetAuthority(address indexed oldAuthority, address indexed newAuthority);
 
     event SetSupplyCapConfig(address indexed asset, uint256 max, uint256 gap, uint256 increaseCooldown);
     event SetBorrowCapConfig(address indexed asset, uint256 max, uint256 gap, uint256 increaseCooldown);
@@ -931,16 +902,8 @@ contract EventTests is CapAutomatorUnitTestBase {
         capAutomator.transferOwnership(newOwner);
     }
 
-    function test_SetAuthority() public {
-        address newAuthority = makeAddr("newAuthority");
-        vm.prank(owner);
-        vm.expectEmit(address(capAutomator));
-        emit SetAuthority(authority, newAuthority);
-        capAutomator.setAuthority(newAuthority);
-    }
-
     function test_SetSupplyCapConfig() public {
-        vm.prank(authority);
+        vm.prank(owner);
         vm.expectEmit(address(capAutomator));
         emit SetSupplyCapConfig(
             asset,
@@ -957,7 +920,7 @@ contract EventTests is CapAutomatorUnitTestBase {
     }
 
     function test_SetBorrowCapConfig() public {
-        vm.prank(authority);
+        vm.prank(owner);
         vm.expectEmit(address(capAutomator));
         emit SetBorrowCapConfig(
             asset,
@@ -974,21 +937,21 @@ contract EventTests is CapAutomatorUnitTestBase {
     }
 
     function test_RemoveSupplyCapConfig() public {
-        vm.prank(authority);
+        vm.prank(owner);
         vm.expectEmit(address(capAutomator));
         emit RemoveSupplyCapConfig(asset);
         capAutomator.removeSupplyCapConfig(asset);
     }
 
     function test_RemoveBorrowCapConfig() public {
-        vm.prank(authority);
+        vm.prank(owner);
         vm.expectEmit(address(capAutomator));
         emit RemoveBorrowCapConfig(asset);
         capAutomator.removeBorrowCapConfig(asset);
     }
 
     function test_UpdateSupplyCap() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setSupplyCapConfig({
             asset:               asset,
             max:              10_000_000,
@@ -1002,7 +965,7 @@ contract EventTests is CapAutomatorUnitTestBase {
     }
 
     function test_UpdateBorrowCap() public {
-        vm.prank(authority);
+        vm.prank(owner);
         capAutomator.setBorrowCapConfig({
             asset:               asset,
             max:              8_000_000,

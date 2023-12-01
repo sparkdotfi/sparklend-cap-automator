@@ -27,33 +27,13 @@ contract CapAutomator is ICapAutomator, Ownable {
     IPoolConfigurator public override immutable poolConfigurator;
     IDataProvider     public override immutable dataProvider;
 
-    address public override authority;
-
     constructor(IPoolConfigurator _poolConfigurator, IDataProvider _dataProvider) Ownable(msg.sender) {
         poolConfigurator = _poolConfigurator;
         dataProvider     = _dataProvider;
     }
 
     /**********************************************************************************************/
-    /*** Modifiers                                                                              ***/
-    /**********************************************************************************************/
-
-    modifier auth {
-        require(msg.sender == authority, "CapAutomator/not-authorized");
-        _;
-    }
-
-    /**********************************************************************************************/
     /*** Owner Functions                                                                        ***/
-    /**********************************************************************************************/
-
-    function setAuthority(address _authority) external onlyOwner {
-        emit SetAuthority(authority, _authority);
-        authority = _authority;
-    }
-
-    /**********************************************************************************************/
-    /*** Auth Functions                                                                         ***/
     /**********************************************************************************************/
 
     function setSupplyCapConfig(
@@ -61,7 +41,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external auth {
+    ) external onlyOwner {
         _validateCapConfig(max, increaseCooldown);
 
         supplyCapConfigs[asset] = CapConfig(
@@ -85,7 +65,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external auth {
+    ) external onlyOwner {
         _validateCapConfig(max, increaseCooldown);
 
         borrowCapConfigs[asset] = CapConfig(
@@ -104,13 +84,13 @@ contract CapAutomator is ICapAutomator, Ownable {
         );
     }
 
-    function removeSupplyCapConfig(address asset) external auth {
+    function removeSupplyCapConfig(address asset) external onlyOwner {
         delete supplyCapConfigs[asset];
 
         emit RemoveSupplyCapConfig(asset);
     }
 
-    function removeBorrowCapConfig(address asset) external auth {
+    function removeBorrowCapConfig(address asset) external onlyOwner {
         delete borrowCapConfigs[asset];
 
         emit RemoveBorrowCapConfig(asset);

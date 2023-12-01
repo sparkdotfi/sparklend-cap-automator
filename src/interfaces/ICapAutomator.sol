@@ -11,13 +11,6 @@ interface ICapAutomator {
     /**********************************************************************************************/
 
     /**
-     *  @dev Event to log the setting of a new authority.
-     *  @param oldAuthority The address of the previous authority.
-     *  @param newAuthority The address of the new authority.
-     */
-    event SetAuthority(address indexed oldAuthority, address indexed newAuthority);
-
-    /**
      *  @dev Event to log the setting of a new supply cap config.
      *  @param asset The address of the asset for which the config was set
      *  @param max Maximum allowed supply cap
@@ -80,12 +73,6 @@ interface ICapAutomator {
     function dataProvider() external view returns (IDataProvider dataProvider);
 
     /**
-     *  @dev Returns the address of the authority.
-     *  @return authority The address of the authority.
-     */
-    function authority() external view returns (address authority);
-
-    /**
      *  @dev Returns current configuration for automatic supply cap management
      *  @param asset The address of the asset which config is going to be returned
      *  @return max Maximum allowed supply cap
@@ -121,16 +108,6 @@ interface ICapAutomator {
 
     /**********************************************************************************************/
     /*** Owner Functions                                                                        ***/
-    /**********************************************************************************************/
-
-    /**
-     * @dev Function to set a new authority, permissioned to owner.
-     * @param _authority The address of the new authority.
-     */
-    function setAuthority(address _authority) external;
-
-    /**********************************************************************************************/
-    /*** Auth Functions                                                                         ***/
     /**********************************************************************************************/
 
     /**
