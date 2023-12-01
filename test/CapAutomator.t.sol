@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
+import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
+
 import { IPoolConfigurator } from "../src/interfaces/IPoolConfigurator.sol";
 import { IDataProvider }     from "../src/interfaces/IDataProvider.sol";
 
@@ -39,7 +41,7 @@ contract CapAutomatorUnitTestBase is Test {
         capAutomator = new CapAutomator(configurator, dataProvider);
 
         capAutomator.setAuthority(authority);
-        capAutomator.setOwner(owner);
+        capAutomator.transferOwnership(owner);
     }
 
 }
@@ -65,21 +67,41 @@ contract ConstructorTests is CapAutomatorUnitTestBase {
 
 }
 
-contract SetOwnerTests is CapAutomatorUnitTestBase {
+contract TransferOwnershipTests is CapAutomatorUnitTestBase {
 
-    function test_setOwner_noAuth() public {
-        vm.expectRevert("CapAutomator/only-owner");
-        capAutomator.setOwner(makeAddr("newOwner"));
+    function test_transferOwnership_noAuth() public {
+        vm.prank(makeAddr("notOwner"));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
+        capAutomator.transferOwnership(makeAddr("newOwner"));
     }
 
-    function test_setOwner() public {
+    function test_transferOwnership_zeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableInvalidOwner.selector, address(0)));
+        capAutomator.transferOwnership(address(0));
+    }
+
+    function test_transferOwnership() public {
         address newOwner = makeAddr("newOwner");
         assertEq(capAutomator.owner(), owner);
 
         vm.prank(owner);
-        capAutomator.setOwner(newOwner);
+        capAutomator.transferOwnership(newOwner);
 
         assertEq(capAutomator.owner(), newOwner);
+    }
+
+    function test_renounceOwnership_noAuth() public {
+        vm.prank(makeAddr("notOwner"));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
+        capAutomator.renounceOwnership();
+    }
+
+    function test_renounceOwnership() public {
+        vm.prank(owner);
+        capAutomator.renounceOwnership();
+
+        assertEq(capAutomator.owner(), address(0));
     }
 
 }
@@ -87,7 +109,8 @@ contract SetOwnerTests is CapAutomatorUnitTestBase {
 contract SetAuthorityTests is CapAutomatorUnitTestBase {
 
     function test_setAuthority_noAuth() public {
-        vm.expectRevert("CapAutomator/only-owner");
+        vm.prank(makeAddr("notOwner"));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
         capAutomator.setAuthority(makeAddr("newAuthority"));
     }
 
@@ -538,7 +561,7 @@ contract CalculateNewCapTests is Test {
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
         capAutomator.setAuthority(authority);
-        capAutomator.setOwner(owner);
+        capAutomator.transferOwnership(owner);
     }
 
     function test_calculateNewCap() public {
@@ -718,7 +741,7 @@ contract UpdateSupplyCapConfigTests is Test {
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
         capAutomator.setAuthority(authority);
-        capAutomator.setOwner(owner);
+        capAutomator.transferOwnership(owner);
     }
 
     function test_updateSupplyCapConfig() public {
@@ -796,7 +819,7 @@ contract UpdateBorrowCapConfigTests is Test {
         capAutomator = new CapAutomatorHarness(configurator, dataProvider);
 
         capAutomator.setAuthority(authority);
-        capAutomator.setOwner(owner);
+        capAutomator.transferOwnership(owner);
     }
 
     function test_updateBorrowCapConfig() public {
@@ -888,7 +911,7 @@ contract ExecTests is CapAutomatorUnitTestBase {
 }
 
 contract EventTests is CapAutomatorUnitTestBase {
-    event SetOwner(address indexed oldOwner, address indexed newOwner);
+    event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
     event SetAuthority(address indexed oldAuthority, address indexed newAuthority);
 
     event SetSupplyCapConfig(address indexed asset, uint256 max, uint256 gap, uint256 increaseCooldown);
@@ -900,12 +923,12 @@ contract EventTests is CapAutomatorUnitTestBase {
     event UpdateSupplyCap(address indexed asset, uint256 oldSupplyCap, uint256 newSupplyCap);
     event UpdateBorrowCap(address indexed asset, uint256 oldBorrowCap, uint256 newBorrowCap);
 
-    function test_SetOwner() public {
+    function test_OwnershipTransferred() public {
         address newOwner = makeAddr("newOwner");
         vm.prank(owner);
         vm.expectEmit(address(capAutomator));
-        emit SetOwner(owner, newOwner);
-        capAutomator.setOwner(newOwner);
+        emit OwnershipTransferred(owner, newOwner);
+        capAutomator.transferOwnership(newOwner);
     }
 
     function test_SetAuthority() public {

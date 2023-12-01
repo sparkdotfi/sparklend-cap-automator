@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.13;
 
+import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
+
 import { IPoolConfigurator } from "./interfaces/IPoolConfigurator.sol";
 import { IDataProvider }     from "./interfaces/IDataProvider.sol";
 import { ICapAutomator }     from "./interfaces/ICapAutomator.sol";
 
-contract CapAutomator is ICapAutomator {
+contract CapAutomator is ICapAutomator, Ownable {
 
     /**********************************************************************************************/
     /*** Declarations and Constructor                                                           ***/
@@ -25,23 +27,16 @@ contract CapAutomator is ICapAutomator {
     IPoolConfigurator public override immutable poolConfigurator;
     IDataProvider     public override immutable dataProvider;
 
-    address public override owner;
     address public override authority;
 
-    constructor(IPoolConfigurator _poolConfigurator, IDataProvider _dataProvider) {
+    constructor(IPoolConfigurator _poolConfigurator, IDataProvider _dataProvider) Ownable(msg.sender) {
         poolConfigurator = _poolConfigurator;
         dataProvider     = _dataProvider;
-        owner            = msg.sender;
     }
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/
     /**********************************************************************************************/
-
-    modifier onlyOwner {
-        require(msg.sender == owner, "CapAutomator/only-owner");
-        _;
-    }
 
     modifier auth {
         require(msg.sender == authority, "CapAutomator/not-authorized");
@@ -51,11 +46,6 @@ contract CapAutomator is ICapAutomator {
     /**********************************************************************************************/
     /*** Owner Functions                                                                        ***/
     /**********************************************************************************************/
-
-    function setOwner(address _owner) external onlyOwner {
-        emit SetOwner(owner, _owner);
-        owner = _owner;
-    }
 
     function setAuthority(address _authority) external onlyOwner {
         emit SetAuthority(authority, _authority);

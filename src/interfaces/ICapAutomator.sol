@@ -11,13 +11,6 @@ interface ICapAutomator {
     /**********************************************************************************************/
 
     /**
-     *  @dev Event to log the setting of a new owner.
-     *  @param oldOwner The address of the previous owner.
-     *  @param newOwner The address of the new owner.
-     */
-    event SetOwner(address indexed oldOwner, address indexed newOwner);
-
-    /**
      *  @dev Event to log the setting of a new authority.
      *  @param oldAuthority The address of the previous authority.
      *  @param newAuthority The address of the new authority.
@@ -93,12 +86,6 @@ interface ICapAutomator {
     function authority() external view returns (address authority);
 
     /**
-     *  @dev Returns the address of the owner.
-     *  @return owner The address of the owner.
-     */
-    function owner() external view returns (address owner);
-
-    /**
      *  @dev Returns current configuration for automatic supply cap management
      *  @param asset The address of the asset which config is going to be returned
      *  @return max Maximum allowed supply cap
@@ -135,12 +122,6 @@ interface ICapAutomator {
     /**********************************************************************************************/
     /*** Owner Functions                                                                        ***/
     /**********************************************************************************************/
-
-    /**
-     * @dev Function to set a new owner, permissioned to owner.
-     * @param _owner The address of the new owner.
-     */
-    function setOwner(address _owner) external;
 
     /**
      * @dev Function to set a new authority, permissioned to owner.
