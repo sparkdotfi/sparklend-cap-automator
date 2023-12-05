@@ -3,9 +3,25 @@ pragma solidity ^0.8.13;
 
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 
-import { IPoolConfigurator } from "./interfaces/IPoolConfigurator.sol";
-import { IDataProvider }     from "./interfaces/IDataProvider.sol";
-import { ICapAutomator }     from "./interfaces/ICapAutomator.sol";
+import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
+
+interface PoolLike {
+
+    function getATokenTotalSupply(address asset) external view returns (uint256);
+
+    function getTotalDebt(address asset) external view returns (uint256);
+
+    function getReserveCaps(address asset) external view returns (uint256, uint256);
+
+}
+
+interface PoolConfiguratorLike {
+
+    function setSupplyCap(address asset, uint256 newSupplyCap) external;
+
+    function setBorrowCap(address asset, uint256 newBorrowCap) external;
+
+}
 
 contract CapAutomator is ICapAutomator, Ownable {
 
@@ -16,7 +32,7 @@ contract CapAutomator is ICapAutomator, Ownable {
     struct CapConfig {
         uint256 max;
         uint256 gap;
-        uint48  increaseCooldown; // seconds
+        uint48  increaseCooldown;    // seconds
         uint48  lastUpdateBlock;     // blocks
         uint48  lastIncreaseTime;    // seconds
     }
@@ -24,12 +40,12 @@ contract CapAutomator is ICapAutomator, Ownable {
     mapping(address => CapConfig) public override supplyCapConfigs;
     mapping(address => CapConfig) public override borrowCapConfigs;
 
-    IPoolConfigurator public override immutable poolConfigurator;
-    IDataProvider     public override immutable dataProvider;
+    address public override immutable poolConfigurator;
+    address public override immutable pool;
 
-    constructor(IPoolConfigurator _poolConfigurator, IDataProvider _dataProvider) Ownable(msg.sender) {
+    constructor(address _poolConfigurator, address _pool) Ownable(msg.sender) {
         poolConfigurator = _poolConfigurator;
-        dataProvider     = _dataProvider;
+        pool             = _pool;
     }
 
     /**********************************************************************************************/
@@ -149,8 +165,8 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateSupplyCapConfig(address asset) internal returns (uint256) {
-          uint256 currentSupply     = dataProvider.getATokenTotalSupply(asset);
-        (,uint256 currentSupplyCap) = dataProvider.getReserveCaps(asset);
+          uint256 currentSupply     = PoolLike(pool).getATokenTotalSupply(asset);
+        (,uint256 currentSupplyCap) = PoolLike(pool).getReserveCaps(asset);
 
         uint256 newSupplyCap = _calculateNewCap(
             supplyCapConfigs[asset],
@@ -162,7 +178,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
-        poolConfigurator.setSupplyCap(asset, newSupplyCap);
+        PoolConfiguratorLike(poolConfigurator).setSupplyCap(asset, newSupplyCap);
 
         if (newSupplyCap > currentSupplyCap) {
             supplyCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);
@@ -175,8 +191,8 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateBorrowCapConfig(address asset) internal returns (uint256) {
-         uint256 currentBorrow      = dataProvider.getTotalDebt(asset);
-        (uint256 currentBorrowCap,) = dataProvider.getReserveCaps(asset);
+         uint256 currentBorrow      = PoolLike(pool).getTotalDebt(asset);
+        (uint256 currentBorrowCap,) = PoolLike(pool).getReserveCaps(asset);
 
         uint256 newBorrowCap = _calculateNewCap(
             borrowCapConfigs[asset],
@@ -188,7 +204,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
-        poolConfigurator.setBorrowCap(asset, newBorrowCap);
+        PoolConfiguratorLike(poolConfigurator).setBorrowCap(asset, newBorrowCap);
 
         if (newBorrowCap > currentBorrowCap) {
             borrowCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);

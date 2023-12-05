@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import { IPoolConfigurator } from "./IPoolConfigurator.sol";
-import { IDataProvider }     from "./IDataProvider.sol";
-
 interface ICapAutomator {
 
     /**********************************************************************************************/
@@ -64,13 +61,13 @@ interface ICapAutomator {
      *  @dev Returns the address of the pool configurator.
      *  @return poolConfigurator The address of the pool configurator.
      */
-    function poolConfigurator() external view returns (IPoolConfigurator poolConfigurator);
+    function poolConfigurator() external view returns (address poolConfigurator);
 
     /**
      *  @dev Returns the address of the data provider.
-     *  @return dataProvider The address of the data provider.
+     *  @return pool The address of the data provider.
      */
-    function dataProvider() external view returns (IDataProvider dataProvider);
+    function pool() external view returns (address pool);
 
     /**
      *  @dev Returns current configuration for automatic supply cap management
