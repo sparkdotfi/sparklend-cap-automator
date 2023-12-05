@@ -3,27 +3,27 @@ pragma solidity ^0.8.13;
 
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 
+import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+
 import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
 
 interface PoolLike {
-
-    function getATokenTotalSupply(address asset) external view returns (uint256);
-
-    function getTotalDebt(address asset) external view returns (uint256);
-
-    function getReserveCaps(address asset) external view returns (uint256, uint256);
-
+    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory);
 }
 
 interface PoolConfiguratorLike {
-
     function setSupplyCap(address asset, uint256 newSupplyCap) external;
-
     function setBorrowCap(address asset, uint256 newBorrowCap) external;
+}
 
+interface ERC20Like {
+    function totalSupply() external view returns (uint256);
 }
 
 contract CapAutomator is ICapAutomator, Ownable {
+
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     /**********************************************************************************************/
     /*** Declarations and Constructor                                                           ***/
@@ -146,7 +146,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         if(max == 0) return currentCap;
 
-        uint48 increaseCooldown = capConfig.increaseCooldown;
+        uint48 increaseCooldown    = capConfig.increaseCooldown;
         uint48 lastUpdateBlock     = capConfig.lastUpdateBlock;
         uint48 lastIncreaseTime    = capConfig.lastIncreaseTime;
 
@@ -154,7 +154,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         uint256 gap = capConfig.gap;
 
-        uint256 newCap =_min(currentState + gap, max);
+        uint256 newCap = _min(currentState + gap, max);
 
         if(
             newCap > currentCap
@@ -165,8 +165,10 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateSupplyCapConfig(address asset) internal returns (uint256) {
-          uint256 currentSupply     = PoolLike(pool).getATokenTotalSupply(asset);
-        (,uint256 currentSupplyCap) = PoolLike(pool).getReserveCaps(asset);
+        DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
+
+        uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
+        uint256 currentSupply    = ERC20Like(reserveData.aTokenAddress).totalSupply();
 
         uint256 newSupplyCap = _calculateNewCap(
             supplyCapConfigs[asset],
@@ -191,8 +193,10 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateBorrowCapConfig(address asset) internal returns (uint256) {
-         uint256 currentBorrow      = PoolLike(pool).getTotalDebt(asset);
-        (uint256 currentBorrowCap,) = PoolLike(pool).getReserveCaps(asset);
+        DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
+
+        uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
+        uint256 currentBorrow    = ERC20Like(reserveData.variableDebtTokenAddress).totalSupply();
 
         uint256 newBorrowCap = _calculateNewCap(
             borrowCapConfigs[asset],

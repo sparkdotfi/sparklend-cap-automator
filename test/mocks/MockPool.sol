@@ -1,22 +1,64 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.13;
 
+import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+
 import { PoolLike, PoolConfiguratorLike } from "src/CapAutomator.sol";
+
+import { MockToken } from "./MockToken.sol";
 
 contract MockPool is PoolLike, PoolConfiguratorLike {
 
-    mapping(address => uint256) public aTokenTotalSupply;
-    mapping(address => uint256) public totalDebt;
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+
+    /**********************************************************************************************/
+    /*** Declarations and Constructor                                                           ***/
+    /**********************************************************************************************/
+
+    MockToken public aToken;
+    MockToken public debtToken;
+
     mapping(address => uint256) public supplyCap;
     mapping(address => uint256) public borrowCap;
 
-    function setATokenTotalSupply(address asset, uint256 newATokenTotalSupply) external {
-        aTokenTotalSupply[asset] = newATokenTotalSupply;
+    constructor() {
+        aToken = new MockToken();
+        debtToken = new MockToken();
     }
 
-    function setTotalDebt(address asset, uint256 newTotalDebt) external {
-        totalDebt[asset] = newTotalDebt;
+    /**********************************************************************************************/
+    /*** PoolLike functions                                                                     ***/
+    /**********************************************************************************************/
+
+    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
+        DataTypes.ReserveConfigurationMap memory configuration = DataTypes.ReserveConfigurationMap(0);
+        configuration.setBorrowCap(borrowCap[asset]);
+        configuration.setSupplyCap(supplyCap[asset]);
+
+        return DataTypes.ReserveData({
+            configuration:                      configuration,
+            liquidityIndex:             uint128(0),
+            currentLiquidityRate:       uint128(0),
+            variableBorrowIndex:        uint128(0),
+            currentVariableBorrowRate:  uint128(0),
+            currentStableBorrowRate:    uint128(0),
+            lastUpdateTimestamp:         uint40(0),
+            id:                          uint16(0),
+            aTokenAddress:              address(aToken),
+            stableDebtTokenAddress:     address(0),
+            variableDebtTokenAddress:   address(debtToken),
+            interestRateStrategyAddress:address(0),
+            accruedToTreasury:          uint128(0),
+            unbacked:                   uint128(0),
+            isolationModeTotalDebt:     uint128(0)
+        });
     }
+
+
+    /**********************************************************************************************/
+    /*** PoolConfiguratorLike functions                                                         ***/
+    /**********************************************************************************************/
 
     function setSupplyCap(address asset, uint256 newSupplyCap) external {
         supplyCap[asset] = newSupplyCap;
@@ -26,15 +68,15 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
         borrowCap[asset] = newBorrowCap;
     }
 
-    function getATokenTotalSupply(address asset) external view returns (uint256) {
-        return aTokenTotalSupply[asset];
+    /**********************************************************************************************/
+    /*** Mock functions                                                                         ***/
+    /**********************************************************************************************/
+
+    function setATokenTotalSupply(uint256 newATokenTotalSupply) external {
+        aToken.setTotalSupply(newATokenTotalSupply);
     }
 
-    function getTotalDebt(address asset) external view returns (uint256) {
-        return totalDebt[asset];
-    }
-
-    function getReserveCaps(address asset) external view returns (uint256, uint256) {
-        return (borrowCap[asset], supplyCap[asset]);
+    function setTotalDebt(uint256 newTotalDebt) external {
+        debtToken.setTotalSupply(newTotalDebt);
     }
 }
