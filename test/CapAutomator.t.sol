@@ -595,8 +595,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 2_400);
     }
@@ -611,8 +610,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 2_000);
     }
@@ -628,8 +626,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 2_400);
 
@@ -642,8 +639,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 2_000);
     }
@@ -658,8 +654,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_500,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 2_000);
     }
@@ -674,8 +669,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             4_800,
-            4_900,
-            0
+            4_900
         );
         assertEq(newCap, 5_000);
     }
@@ -690,8 +684,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             4_800,
-            5_200,
-            0
+            5_200
         );
         assertEq(newCap, 5_000);
     }
@@ -707,8 +700,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 12 hours
             }),
             1_900,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 2_000);
 
@@ -721,8 +713,7 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 12 hours
             }),
             1_200,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 1_700);
 
@@ -736,41 +727,9 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 12 hours
             }),
             1_900,
-            2_000,
-            0
+            2_000
         );
         assertEq(newCap, 2_400);
-    }
-
-    function test_calculateNewCap_differentDecimals() public {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
-            CapAutomator.CapConfig({
-                max:              5_000,
-                gap:              500,
-                increaseCooldown: 0,
-                lastUpdateBlock:  0,
-                lastIncreaseTime: 0
-            }),
-            1_900e6,
-            2_000,
-            6
-        );
-        assertEq(newCap, 2_400);
-
-        newCap = capAutomator._calculateNewCapExternal(
-            CapAutomator.CapConfig({
-                max:              5_000,
-                gap:              500,
-                increaseCooldown: 0,
-                lastUpdateBlock:  0,
-                lastIncreaseTime: 0
-            }),
-            1_900e18,
-            2_000,
-            18
-        );
-        assertEq(newCap, 2_400);
-
     }
 
 }
@@ -795,9 +754,6 @@ contract UpdateSupplyCapConfigTests is Test {
         mockPool.setATokenTotalSupply(6_900);
         mockPool.setSupplyCap(asset, 7_000);
 
-        mockPool.setTotalDebt(3_900);
-        mockPool.setBorrowCap(asset, 4_000);
-
         capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
 
         capAutomator.transferOwnership(owner);
@@ -806,6 +762,37 @@ contract UpdateSupplyCapConfigTests is Test {
     function test_updateSupplyCapConfig() public {
         vm.roll(100);
         vm.warp(100);
+
+        vm.prank(owner);
+        capAutomator.setSupplyCapConfig({
+            asset:            asset,
+            max:              10_000,
+            gap:              500,
+            increaseCooldown: 0
+        });
+
+        assertEq(mockPool.supplyCap(asset), 7_000);
+
+        (,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore) = capAutomator.supplyCapConfigs(asset);
+        assertEq(lastUpdateBlockBefore,  0);
+        assertEq(lastIncreaseTimeBefore, 0);
+
+        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))), 1);
+        assertEq(capAutomator._updateSupplyCapConfigExternal(asset), 7_400);
+
+        assertEq(mockPool.supplyCap(asset), 7_400);
+
+        (,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter) = capAutomator.supplyCapConfigs(asset);
+        assertEq(lastUpdateBlockAfter,  100);
+        assertEq(lastIncreaseTimeAfter, 100);
+    }
+
+    function test_updateSupplyCapConfig_differentDecimals() public {
+        vm.roll(100);
+        vm.warp(100);
+
+        mockPool.aToken().setDecimals(6);
+        mockPool.setATokenTotalSupply(6_900 * 10**6);
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig({
@@ -867,9 +854,6 @@ contract UpdateBorrowCapConfigTests is Test {
         mockPool = new MockPool();
         mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
-        mockPool.setATokenTotalSupply(6_900);
-        mockPool.setSupplyCap(asset, 7_000);
-
         mockPool.setTotalDebt(3_900);
         mockPool.setBorrowCap(asset, 4_000);
 
@@ -881,6 +865,37 @@ contract UpdateBorrowCapConfigTests is Test {
     function test_updateBorrowCapConfig() public {
         vm.roll(100);
         vm.warp(100);
+
+        vm.prank(owner);
+        capAutomator.setBorrowCapConfig({
+            asset:            asset,
+            max:              10_000,
+            gap:              500,
+            increaseCooldown: 0
+        });
+
+        assertEq(mockPool.borrowCap(asset), 4_000);
+
+        (,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore) = capAutomator.borrowCapConfigs(asset);
+        assertEq(lastUpdateBlockBefore,  0);
+        assertEq(lastIncreaseTimeBefore, 0);
+
+        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 1);
+        assertEq(capAutomator._updateBorrowCapConfigExternal(asset), 4_400);
+
+        assertEq(mockPool.borrowCap(asset), 4_400);
+
+        (,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter) = capAutomator.borrowCapConfigs(asset);
+        assertEq(lastUpdateBlockAfter,  100);
+        assertEq(lastIncreaseTimeAfter, 100);
+    }
+
+    function test_updateBorrowCapConfig_differentDecimals() public {
+        vm.roll(100);
+        vm.warp(100);
+
+        mockPool.debtToken().setDecimals(18);
+        mockPool.setTotalDebt(3_900 * 10**18);
 
         vm.prank(owner);
         capAutomator.setBorrowCapConfig({

@@ -136,8 +136,7 @@ contract CapAutomator is ICapAutomator, Ownable {
     function _calculateNewCap(
         CapConfig memory capConfig,
         uint256 currentState,
-        uint256 currentCap,
-        uint256 decimals
+        uint256 currentCap
     ) internal view returns (uint256) {
         uint256 max = capConfig.max;
 
@@ -145,7 +144,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         if (capConfig.lastUpdateBlock == block.number) return currentCap;
 
-        uint256 newCap = _min(currentState + capConfig.gap * 10**decimals, max * 10**decimals) / 10**decimals;
+        uint256 newCap = _min(currentState + capConfig.gap, max);
 
         if(
             newCap > currentCap
@@ -159,14 +158,14 @@ contract CapAutomator is ICapAutomator, Ownable {
         DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 decimals         = ERC20(reserveData.aTokenAddress).decimals();
-        uint256 currentSupply    = ERC20(reserveData.aTokenAddress).totalSupply();
+        uint256 currentSupply    = ERC20(reserveData.aTokenAddress).totalSupply() / 10 ** ERC20(reserveData.aTokenAddress).decimals();
+
+
 
         uint256 newSupplyCap = _calculateNewCap(
             supplyCapConfigs[asset],
             currentSupply,
-            currentSupplyCap,
-            decimals
+            currentSupplyCap
         );
 
         if(newSupplyCap == currentSupplyCap) return currentSupplyCap;
@@ -189,14 +188,12 @@ contract CapAutomator is ICapAutomator, Ownable {
         DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
-        uint256 decimals         = ERC20(reserveData.variableDebtTokenAddress).decimals();
-        uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply();
+        uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
             borrowCapConfigs[asset],
             currentBorrow,
-            currentBorrowCap,
-            decimals
+            currentBorrowCap
         );
 
         if(newBorrowCap == currentBorrowCap) return currentBorrowCap;
