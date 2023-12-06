@@ -20,11 +20,11 @@ contract CapAutomator is ICapAutomator, Ownable {
     /**********************************************************************************************/
 
     struct CapConfig {
-        uint256 max;              // full tokens
-        uint256 gap;              // full tokens
-        uint48  increaseCooldown; // seconds
-        uint48  lastUpdateBlock;  // blocks
-        uint48  lastIncreaseTime; // seconds
+        uint48 max;              // full tokens
+        uint48 gap;              // full tokens
+        uint48 increaseCooldown; // seconds
+        uint48 lastUpdateBlock;  // blocks
+        uint48 lastIncreaseTime; // seconds
     }
 
     mapping(address => CapConfig) public override supplyCapConfigs;
@@ -51,8 +51,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         _validateCapConfig(max, increaseCooldown);
 
         supplyCapConfigs[asset] = CapConfig(
-            max,
-            gap,
+            uint48(max),
+            uint48(gap),
             uint48(increaseCooldown),
             supplyCapConfigs[asset].lastUpdateBlock,
             supplyCapConfigs[asset].lastIncreaseTime
@@ -75,8 +75,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         _validateCapConfig(max, increaseCooldown);
 
         borrowCapConfigs[asset] = CapConfig(
-            max,
-            gap,
+            uint48(max),
+            uint48(gap),
             uint48(increaseCooldown),
             borrowCapConfigs[asset].lastUpdateBlock,
             borrowCapConfigs[asset].lastIncreaseTime

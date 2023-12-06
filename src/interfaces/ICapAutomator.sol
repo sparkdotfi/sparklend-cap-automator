@@ -79,11 +79,11 @@ interface ICapAutomator {
      *  @return lastIncreaseTime The timestamp of the last cap increase
      */
     function supplyCapConfigs(address asset) external view returns (
-        uint256 max,
-        uint256 gap,
-        uint48  increaseCooldown,
-        uint48  lastUpdateBlock,
-        uint48  lastIncreaseTime
+        uint48 max,
+        uint48 gap,
+        uint48 increaseCooldown,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
     );
 
     /**
@@ -96,11 +96,11 @@ interface ICapAutomator {
      *  @return lastIncreaseTime The timestamp of the last cap increase
      */
     function borrowCapConfigs(address asset) external view returns (
-        uint256 max,
-        uint256 gap,
-        uint48  increaseCooldown,
-        uint48  lastUpdateBlock,
-        uint48  lastIncreaseTime
+        uint48 max,
+        uint48 gap,
+        uint48 increaseCooldown,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
     );
 
     /**********************************************************************************************/
