@@ -2,25 +2,14 @@
 pragma solidity ^0.8.13;
 
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
+import { ERC20 } from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { IPool }                from 'aave-v3-core/contracts/interfaces/IPool.sol';
+import { IPoolConfigurator }    from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 
 import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
-
-interface PoolLike {
-    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory);
-}
-
-interface PoolConfiguratorLike {
-    function setSupplyCap(address asset, uint256 newSupplyCap) external;
-    function setBorrowCap(address asset, uint256 newBorrowCap) external;
-}
-
-interface ERC20Like {
-    function decimals() external view returns (uint256);
-    function totalSupply() external view returns (uint256);
-}
 
 contract CapAutomator is ICapAutomator, Ownable {
 
@@ -31,11 +20,11 @@ contract CapAutomator is ICapAutomator, Ownable {
     /**********************************************************************************************/
 
     struct CapConfig {
-        uint256 max;
-        uint256 gap;
-        uint48  increaseCooldown;    // seconds
-        uint48  lastUpdateBlock;     // blocks
-        uint48  lastIncreaseTime;    // seconds
+        uint256 max;              // full tokens
+        uint256 gap;              // full tokens
+        uint48  increaseCooldown; // seconds
+        uint48  lastUpdateBlock;  // blocks
+        uint48  lastIncreaseTime; // seconds
     }
 
     mapping(address => CapConfig) public override supplyCapConfigs;
@@ -167,11 +156,11 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateSupplyCapConfig(address asset) internal returns (uint256) {
-        DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
+        DataTypes.ReserveData memory reserveData = IPool(pool).getReserveData(asset);
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 decimals         = ERC20Like(reserveData.aTokenAddress).decimals();
-        uint256 currentSupply    = ERC20Like(reserveData.aTokenAddress).totalSupply();
+        uint256 decimals         = ERC20(reserveData.aTokenAddress).decimals();
+        uint256 currentSupply    = ERC20(reserveData.aTokenAddress).totalSupply();
 
         uint256 newSupplyCap = _calculateNewCap(
             supplyCapConfigs[asset],
@@ -184,7 +173,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
-        PoolConfiguratorLike(poolConfigurator).setSupplyCap(asset, newSupplyCap);
+        IPoolConfigurator(poolConfigurator).setSupplyCap(asset, newSupplyCap);
 
         if (newSupplyCap > currentSupplyCap) {
             supplyCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);
@@ -197,11 +186,11 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateBorrowCapConfig(address asset) internal returns (uint256) {
-        DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
+        DataTypes.ReserveData memory reserveData = IPool(pool).getReserveData(asset);
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
-        uint256 decimals         = ERC20Like(reserveData.variableDebtTokenAddress).decimals();
-        uint256 currentBorrow    = ERC20Like(reserveData.variableDebtTokenAddress).totalSupply();
+        uint256 decimals         = ERC20(reserveData.variableDebtTokenAddress).decimals();
+        uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply();
 
         uint256 newBorrowCap = _calculateNewCap(
             borrowCapConfigs[asset],
@@ -214,7 +203,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
-        PoolConfiguratorLike(poolConfigurator).setBorrowCap(asset, newBorrowCap);
+        IPoolConfigurator(poolConfigurator).setBorrowCap(asset, newBorrowCap);
 
         if (newBorrowCap > currentBorrowCap) {
             borrowCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);

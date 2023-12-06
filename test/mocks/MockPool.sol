@@ -4,11 +4,9 @@ pragma solidity ^0.8.13;
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
 
-import { PoolLike, PoolConfiguratorLike } from "src/CapAutomator.sol";
-
 import { MockToken } from "./MockToken.sol";
 
-contract MockPool is PoolLike, PoolConfiguratorLike {
+contract MockPool {
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
@@ -28,7 +26,7 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
     }
 
     /**********************************************************************************************/
-    /*** PoolLike functions                                                                     ***/
+    /*** Pool functions                                                                         ***/
     /**********************************************************************************************/
 
     function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
@@ -57,7 +55,7 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
 
 
     /**********************************************************************************************/
-    /*** PoolConfiguratorLike functions                                                         ***/
+    /*** PoolConfigurator functions                                                             ***/
     /**********************************************************************************************/
 
     function setSupplyCap(address asset, uint256 newSupplyCap) external {
