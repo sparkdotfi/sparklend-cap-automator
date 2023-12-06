@@ -6,6 +6,7 @@ import { ERC20 } from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { IPoolAddressesProvider } from 'aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol';
 import { IPool }                from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import { IPoolConfigurator }    from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 
@@ -33,9 +34,9 @@ contract CapAutomator is ICapAutomator, Ownable {
     IPoolConfigurator public override immutable poolConfigurator;
     IPool             public override immutable pool;
 
-    constructor(address _poolConfigurator, address _pool) Ownable(msg.sender) {
-        poolConfigurator = IPoolConfigurator(_poolConfigurator);
-        pool             = IPool(_pool);
+    constructor(address poolAddressesProvider) Ownable(msg.sender) {
+        poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPool());
+        pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
     }
 
     /**********************************************************************************************/

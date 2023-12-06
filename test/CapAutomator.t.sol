@@ -10,12 +10,14 @@ import { IPoolConfigurator } from 'aave-v3-core/contracts/interfaces/IPoolConfig
 
 import { CapAutomator } from "../src/CapAutomator.sol";
 
-import { MockPool }             from "./mocks/MockPool.sol";
-import { CapAutomatorHarness }  from "./harnesses/CapAutomatorHarness.sol";
+import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
+import { MockPool }                  from "./mocks/MockPool.sol";
+import { CapAutomatorHarness }       from "./harnesses/CapAutomatorHarness.sol";
 
 contract CapAutomatorUnitTestBase is Test {
 
-    MockPool public mockPool;
+    MockPoolAddressesProvider public mockPoolAddressesProvider;
+    MockPool                  public mockPool;
 
     address public owner;
     address public asset;
@@ -27,6 +29,7 @@ contract CapAutomatorUnitTestBase is Test {
         asset     = makeAddr("asset");
 
         mockPool = new MockPool();
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
         mockPool.setATokenTotalSupply(6_900);
         mockPool.setSupplyCap(asset, 7_000);
@@ -34,7 +37,7 @@ contract CapAutomatorUnitTestBase is Test {
         mockPool.setTotalDebt(3_900);
         mockPool.setBorrowCap(asset, 4_000);
 
-        capAutomator = new CapAutomator(address(mockPool), address(mockPool));
+        capAutomator = new CapAutomator(address(mockPoolAddressesProvider));
 
         capAutomator.transferOwnership(owner);
     }
@@ -44,7 +47,8 @@ contract CapAutomatorUnitTestBase is Test {
 contract ConstructorTests is CapAutomatorUnitTestBase {
 
     function test_constructor() public {
-        capAutomator = new CapAutomator(makeAddr("poolConfigurator"), makeAddr("pool"));
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(makeAddr("poolConfigurator"), makeAddr("pool"));
+        capAutomator = new CapAutomator(address(mockPoolAddressesProvider));
 
         assertEq(
             address(capAutomator.poolConfigurator()),
@@ -523,7 +527,8 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
 contract CalculateNewCapTests is Test {
 
-    MockPool public mockPool;
+    MockPoolAddressesProvider public mockPoolAddressesProvider;
+    MockPool                  public mockPool;
 
     address public owner;
 
@@ -532,9 +537,10 @@ contract CalculateNewCapTests is Test {
     function setUp() public {
         owner = makeAddr("owner");
 
-        mockPool = new MockPool();
+        mockPool                  = new MockPool();
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
-        capAutomator = new CapAutomatorHarness(address(mockPool), address(mockPool));
+        capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
 
         capAutomator.transferOwnership(owner);
     }
@@ -731,7 +737,8 @@ contract CalculateNewCapTests is Test {
 
 contract UpdateSupplyCapConfigTests is Test {
 
-    MockPool public mockPool;
+    MockPoolAddressesProvider public mockPoolAddressesProvider;
+    MockPool                  public mockPool;
 
     address public owner;
     address public asset;
@@ -743,6 +750,7 @@ contract UpdateSupplyCapConfigTests is Test {
         asset     = makeAddr("asset");
 
         mockPool = new MockPool();
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
         mockPool.setATokenTotalSupply(6_900);
         mockPool.setSupplyCap(asset, 7_000);
@@ -750,7 +758,7 @@ contract UpdateSupplyCapConfigTests is Test {
         mockPool.setTotalDebt(3_900);
         mockPool.setBorrowCap(asset, 4_000);
 
-        capAutomator = new CapAutomatorHarness(address(mockPool), address(mockPool));
+        capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
 
         capAutomator.transferOwnership(owner);
     }
@@ -804,7 +812,8 @@ contract UpdateSupplyCapConfigTests is Test {
 
 contract UpdateBorrowCapConfigTests is Test {
 
-    MockPool public mockPool;
+    MockPoolAddressesProvider public mockPoolAddressesProvider;
+    MockPool                  public mockPool;
 
     address public owner;
     address public asset;
@@ -816,6 +825,7 @@ contract UpdateBorrowCapConfigTests is Test {
         asset     = makeAddr("asset");
 
         mockPool = new MockPool();
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
         mockPool.setATokenTotalSupply(6_900);
         mockPool.setSupplyCap(asset, 7_000);
@@ -823,7 +833,7 @@ contract UpdateBorrowCapConfigTests is Test {
         mockPool.setTotalDebt(3_900);
         mockPool.setBorrowCap(asset, 4_000);
 
-        capAutomator = new CapAutomatorHarness(address(mockPool), address(mockPool));
+        capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
 
         capAutomator.transferOwnership(owner);
     }
