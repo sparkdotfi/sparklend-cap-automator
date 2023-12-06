@@ -4,16 +4,18 @@ pragma solidity ^0.8.13;
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 import { ERC20 } from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
-import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { ReserveConfiguration }   from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }              from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { WadRayMath }             from 'aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol';
 import { IPoolAddressesProvider } from 'aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol';
-import { IPool }                from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import { IPoolConfigurator }    from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
+import { IPool }                  from 'aave-v3-core/contracts/interfaces/IPool.sol';
+import { IPoolConfigurator }      from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 
 import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
 
 contract CapAutomator is ICapAutomator, Ownable {
 
+    using WadRayMath for uint256;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     /**********************************************************************************************/
@@ -35,8 +37,8 @@ contract CapAutomator is ICapAutomator, Ownable {
     IPool             public override immutable pool;
 
     constructor(address poolAddressesProvider) Ownable(msg.sender) {
-        poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPool());
-        pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
+        pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPool());
+        poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
     }
 
     /**********************************************************************************************/
@@ -158,9 +160,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 currentSupply    = ERC20(reserveData.aTokenAddress).totalSupply() / 10 ** ERC20(reserveData.aTokenAddress).decimals();
-
-
+        uint256 currentSupply    = (ERC20(reserveData.aTokenAddress).totalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
+            / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
             supplyCapConfigs[asset],

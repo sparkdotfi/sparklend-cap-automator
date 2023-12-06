@@ -47,16 +47,16 @@ contract CapAutomatorUnitTestBase is Test {
 contract ConstructorTests is CapAutomatorUnitTestBase {
 
     function test_constructor() public {
-        mockPoolAddressesProvider = new MockPoolAddressesProvider(makeAddr("poolConfigurator"), makeAddr("pool"));
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(makeAddr("pool"), makeAddr("poolConfigurator"));
         capAutomator = new CapAutomator(address(mockPoolAddressesProvider));
 
         assertEq(
-            address(capAutomator.poolConfigurator()),
-            makeAddr("poolConfigurator")
-        );
-        assertEq(
             address(capAutomator.pool()),
             makeAddr("pool")
+        );
+        assertEq(
+            address(capAutomator.poolConfigurator()),
+            makeAddr("poolConfigurator")
         );
         assertEq(
             address(capAutomator.owner()),
@@ -759,6 +759,7 @@ contract UpdateSupplyCapConfigTests is Test {
         capAutomator.transferOwnership(owner);
     }
 
+    // TODO edit to be a more complex case with accruedToTreasury
     function test_updateSupplyCapConfig() public {
         vm.roll(100);
         vm.warp(100);
