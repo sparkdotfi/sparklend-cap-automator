@@ -49,8 +49,9 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, increaseCooldown);
+        _validateCapConfig(max, gap, increaseCooldown);
 
+        // casting from uint256 to uin48 validated in _validateCapConfig
         supplyCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
@@ -73,8 +74,9 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, increaseCooldown);
+        _validateCapConfig(max, gap, increaseCooldown);
 
+        // casting from uint256 to uin48 validated in _validateCapConfig
         borrowCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
@@ -118,9 +120,12 @@ contract CapAutomator is ICapAutomator, Ownable {
 
     function _validateCapConfig(
         uint256 max,
+        uint256 gap,
         uint256 increaseCooldown
     ) internal pure {
         require(max > 0,                              "CapAutomator/invalid-cap");
+        require(max <= type(uint48).max,              "CapAutomator/invalid-cap");
+        require(gap <= type(uint48).max,              "CapAutomator/invalid-gap");
         require(increaseCooldown <= type(uint48).max, "CapAutomator/invalid-cooldown");
     }
 
@@ -138,19 +143,13 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         if(max == 0) return currentCap;
 
-        uint48 increaseCooldown    = capConfig.increaseCooldown;
-        uint48 lastUpdateBlock     = capConfig.lastUpdateBlock;
-        uint48 lastIncreaseTime    = capConfig.lastIncreaseTime;
+        if (capConfig.lastUpdateBlock == block.number) return currentCap;
 
-        if (lastUpdateBlock == block.number) return currentCap;
-
-        uint256 gap = capConfig.gap;
-
-        uint256 newCap = _min(currentState + gap * 10**decimals, max * 10**decimals) / 10**decimals;
+        uint256 newCap = _min(currentState + capConfig.gap * 10**decimals, max * 10**decimals) / 10**decimals;
 
         if(
             newCap > currentCap
-            && block.timestamp < (lastIncreaseTime + increaseCooldown)
+            && block.timestamp < (capConfig.lastIncreaseTime + capConfig.increaseCooldown)
         ) return currentCap;
 
         return newCap;

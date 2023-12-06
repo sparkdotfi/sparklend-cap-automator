@@ -125,7 +125,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             asset,
             10_000,
             1_000,
-            2**48
+            uint256(type(uint48).max) + 1
         );
     }
 
@@ -136,6 +136,26 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             asset,
             0,
             1_000,
+            12 hours
+        );
+
+        vm.expectRevert("CapAutomator/invalid-cap");
+        vm.prank(owner);
+        capAutomator.setSupplyCapConfig(
+            asset,
+            uint256(type(uint48).max) + 1,
+            1_000,
+            12 hours
+        );
+    }
+
+    function test_setSupplyCapConfig_invalidGap() public {
+        vm.expectRevert("CapAutomator/invalid-gap");
+        vm.prank(owner);
+        capAutomator.setSupplyCapConfig(
+            asset,
+            10_000,
+            uint256(type(uint48).max) + 1,
             12 hours
         );
     }
@@ -289,7 +309,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             asset,
             10_000,
             1_000,
-            2**48
+            uint256(type(uint48).max) + 1
         );
     }
 
@@ -300,6 +320,26 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             asset,
             0,
             1_000,
+            12 hours
+        );
+
+        vm.expectRevert("CapAutomator/invalid-cap");
+        vm.prank(owner);
+        capAutomator.setBorrowCapConfig(
+            asset,
+            uint256(type(uint48).max) + 1,
+            1_000,
+            12 hours
+        );
+    }
+
+    function test_setBorrowCapConfig_invalidGap() public {
+        vm.expectRevert("CapAutomator/invalid-gap");
+        vm.prank(owner);
+        capAutomator.setBorrowCapConfig(
+            asset,
+            10_000,
+            uint256(type(uint48).max) + 1,
             12 hours
         );
     }
