@@ -18,6 +18,7 @@ interface PoolConfiguratorLike {
 }
 
 interface ERC20Like {
+    function decimals() external view returns (uint256);
     function totalSupply() external view returns (uint256);
 }
 
@@ -140,7 +141,8 @@ contract CapAutomator is ICapAutomator, Ownable {
     function _calculateNewCap(
         CapConfig memory capConfig,
         uint256 currentState,
-        uint256 currentCap
+        uint256 currentCap,
+        uint256 decimals
     ) internal view returns (uint256) {
         uint256 max = capConfig.max;
 
@@ -154,7 +156,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         uint256 gap = capConfig.gap;
 
-        uint256 newCap = _min(currentState + gap, max);
+        uint256 newCap = _min(currentState + gap * 10**decimals, max * 10**decimals) / 10**decimals;
 
         if(
             newCap > currentCap
@@ -168,12 +170,14 @@ contract CapAutomator is ICapAutomator, Ownable {
         DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
+        uint256 decimals         = ERC20Like(reserveData.aTokenAddress).decimals();
         uint256 currentSupply    = ERC20Like(reserveData.aTokenAddress).totalSupply();
 
         uint256 newSupplyCap = _calculateNewCap(
             supplyCapConfigs[asset],
             currentSupply,
-            currentSupplyCap
+            currentSupplyCap,
+            decimals
         );
 
         if(newSupplyCap == currentSupplyCap) return currentSupplyCap;
@@ -196,12 +200,14 @@ contract CapAutomator is ICapAutomator, Ownable {
         DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
+        uint256 decimals         = ERC20Like(reserveData.variableDebtTokenAddress).decimals();
         uint256 currentBorrow    = ERC20Like(reserveData.variableDebtTokenAddress).totalSupply();
 
         uint256 newBorrowCap = _calculateNewCap(
             borrowCapConfigs[asset],
             currentBorrow,
-            currentBorrowCap
+            currentBorrowCap,
+            decimals
         );
 
         if(newBorrowCap == currentBorrowCap) return currentBorrowCap;

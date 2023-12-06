@@ -547,7 +547,8 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 2_400);
     }
@@ -562,7 +563,8 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 2_000);
     }
@@ -578,7 +580,8 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 2_400);
 
@@ -591,7 +594,8 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_900,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 2_000);
     }
@@ -606,12 +610,13 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             1_500,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 2_000);
     }
 
-    function test_calculateNewCap_closeTomax() public {
+    function test_calculateNewCap_closeToMax() public {
         uint256 newCap = capAutomator._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
@@ -621,12 +626,13 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             4_800,
-            4_900
+            4_900,
+            0
         );
         assertEq(newCap, 5_000);
     }
 
-    function test_calculateNewCap_abovemax() public {
+    function test_calculateNewCap_aboveMax() public {
         uint256 newCap = capAutomator._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
@@ -636,7 +642,8 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 0
             }),
             4_800,
-            5_200
+            5_200,
+            0
         );
         assertEq(newCap, 5_000);
     }
@@ -652,7 +659,8 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 12 hours
             }),
             1_900,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 2_000);
 
@@ -665,7 +673,8 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 12 hours
             }),
             1_200,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 1_700);
 
@@ -679,9 +688,41 @@ contract CalculateNewCapTests is Test {
                 lastIncreaseTime: 12 hours
             }),
             1_900,
-            2_000
+            2_000,
+            0
         );
         assertEq(newCap, 2_400);
+    }
+
+    function test_calculateNewCap_differentDecimals() public {
+        uint256 newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                max:              5_000,
+                gap:              500,
+                increaseCooldown: 0,
+                lastUpdateBlock:  0,
+                lastIncreaseTime: 0
+            }),
+            1_900e6,
+            2_000,
+            6
+        );
+        assertEq(newCap, 2_400);
+
+        newCap = capAutomator._calculateNewCapExternal(
+            CapAutomator.CapConfig({
+                max:              5_000,
+                gap:              500,
+                increaseCooldown: 0,
+                lastUpdateBlock:  0,
+                lastIncreaseTime: 0
+            }),
+            1_900e18,
+            2_000,
+            18
+        );
+        assertEq(newCap, 2_400);
+
     }
 
 }

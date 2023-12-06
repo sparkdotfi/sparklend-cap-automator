@@ -3,8 +3,13 @@ pragma solidity ^0.8.13;
 
 contract MockToken {
     uint256 public totalSupply;
+    uint256 public decimals;
 
     function setTotalSupply(uint256 _totalSupply) public {
         totalSupply = _totalSupply;
+    }
+
+    function setDecimals(uint256 _decimals) public {
+        decimals = _decimals;
     }
 }

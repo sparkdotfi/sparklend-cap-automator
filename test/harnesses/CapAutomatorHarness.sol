@@ -11,12 +11,14 @@ contract CapAutomatorHarness is CapAutomator {
     function _calculateNewCapExternal(
         CapConfig memory capConfig,
         uint256 currentState,
-        uint256 currentCap
+        uint256 currentCap,
+        uint256 decimals
     ) public view returns (uint256) {
         return super._calculateNewCap(
             capConfig,
             currentState,
-            currentCap
+            currentCap,
+            decimals
         );
     }
 
