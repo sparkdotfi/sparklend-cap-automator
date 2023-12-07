@@ -53,7 +53,7 @@ contract CapAutomator is ICapAutomator, Ownable {
     ) external onlyOwner {
         _validateCapConfig(max, gap, increaseCooldown);
 
-        // casting from uint256 touint48 validated in _validateCapConfig
+        // casting from uint256 to uint48 validated in _validateCapConfig
         supplyCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
@@ -78,7 +78,7 @@ contract CapAutomator is ICapAutomator, Ownable {
     ) external onlyOwner {
         _validateCapConfig(max, gap, increaseCooldown);
 
-        // casting from uint256 touint48 validated in _validateCapConfig
+        // casting from uint256 to uint48 validated in _validateCapConfig
         borrowCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
