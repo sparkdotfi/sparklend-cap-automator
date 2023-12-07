@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.13;
 
+import { IPool }             from 'aave-v3-core/contracts/interfaces/IPool.sol';
+import { IPoolConfigurator } from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
+
 interface ICapAutomator {
 
     /**********************************************************************************************/
@@ -61,13 +64,13 @@ interface ICapAutomator {
      *  @dev Returns the address of the pool configurator.
      *  @return poolConfigurator The address of the pool configurator.
      */
-    function poolConfigurator() external view returns (address poolConfigurator);
+    function poolConfigurator() external view returns (IPoolConfigurator poolConfigurator);
 
     /**
      *  @dev Returns the address of the data provider.
      *  @return pool The address of the data provider.
      */
-    function pool() external view returns (address pool);
+    function pool() external view returns (IPool pool);
 
     /**
      *  @dev Returns current configuration for automatic supply cap management
@@ -79,11 +82,11 @@ interface ICapAutomator {
      *  @return lastIncreaseTime The timestamp of the last cap increase
      */
     function supplyCapConfigs(address asset) external view returns (
-        uint256 max,
-        uint256 gap,
-        uint48  increaseCooldown,
-        uint48  lastUpdateBlock,
-        uint48  lastIncreaseTime
+        uint48 max,
+        uint48 gap,
+        uint48 increaseCooldown,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
     );
 
     /**
@@ -96,11 +99,11 @@ interface ICapAutomator {
      *  @return lastIncreaseTime The timestamp of the last cap increase
      */
     function borrowCapConfigs(address asset) external view returns (
-        uint256 max,
-        uint256 gap,
-        uint48  increaseCooldown,
-        uint48  lastUpdateBlock,
-        uint48  lastIncreaseTime
+        uint48 max,
+        uint48 gap,
+        uint48 increaseCooldown,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
     );
 
     /**********************************************************************************************/

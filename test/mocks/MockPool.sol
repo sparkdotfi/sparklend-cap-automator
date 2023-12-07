@@ -4,11 +4,9 @@ pragma solidity ^0.8.13;
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
 
-import { PoolLike, PoolConfiguratorLike } from "src/CapAutomator.sol";
-
 import { MockToken } from "./MockToken.sol";
 
-contract MockPool is PoolLike, PoolConfiguratorLike {
+contract MockPool {
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
@@ -19,6 +17,9 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
     MockToken public aToken;
     MockToken public debtToken;
 
+    uint256 public liquidityIndex;
+    uint256 public accruedToTreasury;
+
     mapping(address => uint256) public supplyCap;
     mapping(address => uint256) public borrowCap;
 
@@ -28,7 +29,7 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
     }
 
     /**********************************************************************************************/
-    /*** PoolLike functions                                                                     ***/
+    /*** Pool functions                                                                         ***/
     /**********************************************************************************************/
 
     function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
@@ -38,7 +39,7 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
 
         return DataTypes.ReserveData({
             configuration:                      configuration,
-            liquidityIndex:             uint128(0),
+            liquidityIndex:             uint128(liquidityIndex),
             currentLiquidityRate:       uint128(0),
             variableBorrowIndex:        uint128(0),
             currentVariableBorrowRate:  uint128(0),
@@ -49,7 +50,7 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
             stableDebtTokenAddress:     address(0),
             variableDebtTokenAddress:   address(debtToken),
             interestRateStrategyAddress:address(0),
-            accruedToTreasury:          uint128(0),
+            accruedToTreasury:          uint128(accruedToTreasury),
             unbacked:                   uint128(0),
             isolationModeTotalDebt:     uint128(0)
         });
@@ -57,7 +58,7 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
 
 
     /**********************************************************************************************/
-    /*** PoolConfiguratorLike functions                                                         ***/
+    /*** PoolConfigurator functions                                                             ***/
     /**********************************************************************************************/
 
     function setSupplyCap(address asset, uint256 newSupplyCap) external {
@@ -79,4 +80,13 @@ contract MockPool is PoolLike, PoolConfiguratorLike {
     function setTotalDebt(uint256 newTotalDebt) external {
         debtToken.setTotalSupply(newTotalDebt);
     }
+
+    function setLiquidityIndex(uint256 _liquidityIndex) external {
+        liquidityIndex = _liquidityIndex;
+    }
+
+    function setAccruedToTreasury(uint256 _accruedToTreasury) external {
+        accruedToTreasury = _accruedToTreasury;
+    }
+
 }

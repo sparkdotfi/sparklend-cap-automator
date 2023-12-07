@@ -2,28 +2,20 @@
 pragma solidity ^0.8.13;
 
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
+import { ERC20 }   from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
-import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { ReserveConfiguration }   from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }              from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { WadRayMath }             from 'aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol';
+import { IPoolAddressesProvider } from 'aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol';
+import { IPool }                  from 'aave-v3-core/contracts/interfaces/IPool.sol';
+import { IPoolConfigurator }      from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 
 import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
 
-interface PoolLike {
-    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory);
-}
-
-interface PoolConfiguratorLike {
-    function setSupplyCap(address asset, uint256 newSupplyCap) external;
-    function setBorrowCap(address asset, uint256 newBorrowCap) external;
-}
-
-interface ERC20Like {
-    function decimals() external view returns (uint256);
-    function totalSupply() external view returns (uint256);
-}
-
 contract CapAutomator is ICapAutomator, Ownable {
 
+    using WadRayMath for uint256;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     /**********************************************************************************************/
@@ -31,22 +23,22 @@ contract CapAutomator is ICapAutomator, Ownable {
     /**********************************************************************************************/
 
     struct CapConfig {
-        uint256 max;
-        uint256 gap;
-        uint48  increaseCooldown;    // seconds
-        uint48  lastUpdateBlock;     // blocks
-        uint48  lastIncreaseTime;    // seconds
+        uint48 max;              // full tokens
+        uint48 gap;              // full tokens
+        uint48 increaseCooldown; // seconds
+        uint48 lastUpdateBlock;  // blocks
+        uint48 lastIncreaseTime; // seconds
     }
 
     mapping(address => CapConfig) public override supplyCapConfigs;
     mapping(address => CapConfig) public override borrowCapConfigs;
 
-    address public override immutable poolConfigurator;
-    address public override immutable pool;
+    IPoolConfigurator public override immutable poolConfigurator;
+    IPool             public override immutable pool;
 
-    constructor(address _poolConfigurator, address _pool) Ownable(msg.sender) {
-        poolConfigurator = _poolConfigurator;
-        pool             = _pool;
+    constructor(address poolAddressesProvider) Ownable(msg.sender) {
+        pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPool());
+        poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
     }
 
     /**********************************************************************************************/
@@ -59,11 +51,12 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, increaseCooldown);
+        _validateCapConfig(max, gap, increaseCooldown);
 
+        // casting from uint256 to uint48 validated in _validateCapConfig
         supplyCapConfigs[asset] = CapConfig(
-            max,
-            gap,
+            uint48(max),
+            uint48(gap),
             uint48(increaseCooldown),
             supplyCapConfigs[asset].lastUpdateBlock,
             supplyCapConfigs[asset].lastIncreaseTime
@@ -83,11 +76,12 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, increaseCooldown);
+        _validateCapConfig(max, gap, increaseCooldown);
 
+        // casting from uint256 to uint48 validated in _validateCapConfig
         borrowCapConfigs[asset] = CapConfig(
-            max,
-            gap,
+            uint48(max),
+            uint48(gap),
             uint48(increaseCooldown),
             borrowCapConfigs[asset].lastUpdateBlock,
             borrowCapConfigs[asset].lastIncreaseTime
@@ -128,9 +122,12 @@ contract CapAutomator is ICapAutomator, Ownable {
 
     function _validateCapConfig(
         uint256 max,
+        uint256 gap,
         uint256 increaseCooldown
     ) internal pure {
         require(max > 0,                              "CapAutomator/invalid-cap");
+        require(max <= type(uint48).max,              "CapAutomator/invalid-cap");
+        require(gap <= type(uint48).max,              "CapAutomator/invalid-gap");
         require(increaseCooldown <= type(uint48).max, "CapAutomator/invalid-cooldown");
     }
 
@@ -141,88 +138,82 @@ contract CapAutomator is ICapAutomator, Ownable {
     function _calculateNewCap(
         CapConfig memory capConfig,
         uint256 currentState,
-        uint256 currentCap,
-        uint256 decimals
+        uint256 currentCap
     ) internal view returns (uint256) {
         uint256 max = capConfig.max;
 
-        if(max == 0) return currentCap;
+        if (max == 0) return currentCap;
 
-        uint48 increaseCooldown    = capConfig.increaseCooldown;
-        uint48 lastUpdateBlock     = capConfig.lastUpdateBlock;
-        uint48 lastIncreaseTime    = capConfig.lastIncreaseTime;
+        if (capConfig.lastUpdateBlock == block.number) return currentCap;
 
-        if (lastUpdateBlock == block.number) return currentCap;
+        uint256 newCap = _min(currentState + capConfig.gap, max);
 
-        uint256 gap = capConfig.gap;
-
-        uint256 newCap = _min(currentState + gap * 10**decimals, max * 10**decimals) / 10**decimals;
-
-        if(
+        if (
             newCap > currentCap
-            && block.timestamp < (lastIncreaseTime + increaseCooldown)
+            && block.timestamp < (capConfig.lastIncreaseTime + capConfig.increaseCooldown)
         ) return currentCap;
 
         return newCap;
     }
 
     function _updateSupplyCapConfig(address asset) internal returns (uint256) {
-        DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
+        DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
+        CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 decimals         = ERC20Like(reserveData.aTokenAddress).decimals();
-        uint256 currentSupply    = ERC20Like(reserveData.aTokenAddress).totalSupply();
+        uint256 currentSupply    = (ERC20(reserveData.aTokenAddress).totalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
+            / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
-            supplyCapConfigs[asset],
+            capConfig,
             currentSupply,
-            currentSupplyCap,
-            decimals
+            currentSupplyCap
         );
 
-        if(newSupplyCap == currentSupplyCap) return currentSupplyCap;
+        if (newSupplyCap == currentSupplyCap) return currentSupplyCap;
 
         emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
-        PoolConfiguratorLike(poolConfigurator).setSupplyCap(asset, newSupplyCap);
+        poolConfigurator.setSupplyCap(asset, newSupplyCap);
 
         if (newSupplyCap > currentSupplyCap) {
-            supplyCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);
-            supplyCapConfigs[asset].lastUpdateBlock  = uint48(block.number);
+            capConfig.lastIncreaseTime = uint48(block.timestamp);
+            capConfig.lastUpdateBlock  = uint48(block.number);
         } else {
-            supplyCapConfigs[asset].lastUpdateBlock = uint48(block.number);
+            capConfig.lastUpdateBlock = uint48(block.number);
         }
 
+        supplyCapConfigs[asset] = capConfig;
         return newSupplyCap;
     }
 
     function _updateBorrowCapConfig(address asset) internal returns (uint256) {
-        DataTypes.ReserveData memory reserveData = PoolLike(pool).getReserveData(asset);
+        DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
+        CapConfig             memory capConfig   = borrowCapConfigs[asset];
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
-        uint256 decimals         = ERC20Like(reserveData.variableDebtTokenAddress).decimals();
-        uint256 currentBorrow    = ERC20Like(reserveData.variableDebtTokenAddress).totalSupply();
+        uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
-            borrowCapConfigs[asset],
+            capConfig,
             currentBorrow,
-            currentBorrowCap,
-            decimals
+            currentBorrowCap
         );
 
-        if(newBorrowCap == currentBorrowCap) return currentBorrowCap;
+        if (newBorrowCap == currentBorrowCap) return currentBorrowCap;
 
         emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
-        PoolConfiguratorLike(poolConfigurator).setBorrowCap(asset, newBorrowCap);
+        poolConfigurator.setBorrowCap(asset, newBorrowCap);
 
         if (newBorrowCap > currentBorrowCap) {
-            borrowCapConfigs[asset].lastIncreaseTime = uint48(block.timestamp);
-            borrowCapConfigs[asset].lastUpdateBlock  = uint48(block.number);
+            capConfig.lastIncreaseTime = uint48(block.timestamp);
+            capConfig.lastUpdateBlock  = uint48(block.number);
         } else {
-            borrowCapConfigs[asset].lastUpdateBlock = uint48(block.number);
+            capConfig.lastUpdateBlock = uint48(block.number);
         }
 
+        borrowCapConfigs[asset] = capConfig;
         return newBorrowCap;
     }
 
