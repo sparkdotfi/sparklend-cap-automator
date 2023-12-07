@@ -259,6 +259,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlock,  0);
         assertEq(lastIncreaseTime, 0);
 
+        vm.roll(100_000);
         vm.warp(12 hours);
         capAutomator.exec(asset);
 
@@ -268,8 +269,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             uint48 postExecIncreaseTime
         ) = capAutomator.supplyCapConfigs(asset);
 
-        assertNotEq(postExecUpdateBlock,  0);
-        assertNotEq(postExecIncreaseTime, 0);
+        assertEq(postExecUpdateBlock,  100_000);
+        assertEq(postExecIncreaseTime, 12 hours);
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
