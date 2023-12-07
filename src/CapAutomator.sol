@@ -142,13 +142,13 @@ contract CapAutomator is ICapAutomator, Ownable {
     ) internal view returns (uint256) {
         uint256 max = capConfig.max;
 
-        if(max == 0) return currentCap;
+        if (max == 0) return currentCap;
 
         if (capConfig.lastUpdateBlock == block.number) return currentCap;
 
         uint256 newCap = _min(currentState + capConfig.gap, max);
 
-        if(
+        if (
             newCap > currentCap
             && block.timestamp < (capConfig.lastIncreaseTime + capConfig.increaseCooldown)
         ) return currentCap;
@@ -170,7 +170,7 @@ contract CapAutomator is ICapAutomator, Ownable {
             currentSupplyCap
         );
 
-        if(newSupplyCap == currentSupplyCap) return currentSupplyCap;
+        if (newSupplyCap == currentSupplyCap) return currentSupplyCap;
 
         emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
@@ -200,7 +200,7 @@ contract CapAutomator is ICapAutomator, Ownable {
             currentBorrowCap
         );
 
-        if(newBorrowCap == currentBorrowCap) return currentBorrowCap;
+        if (newBorrowCap == currentBorrowCap) return currentBorrowCap;
 
         emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
