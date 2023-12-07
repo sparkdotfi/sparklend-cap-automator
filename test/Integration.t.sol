@@ -31,7 +31,6 @@ contract CapAutomatorIntegrationTests is Test {
 
     CapAutomator public capAutomator;
 
-
     IACLManager aclManager = IACLManager(ACL_MANAGER);
     IPool       pool       =       IPool(POOL);
 
