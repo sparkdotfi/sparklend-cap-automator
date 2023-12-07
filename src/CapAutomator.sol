@@ -12,12 +12,12 @@ import { IPool }                  from 'aave-v3-core/contracts/interfaces/IPool.
 import { IPoolConfigurator }      from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 import { IScaledBalanceToken }    from 'aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol';
 
-import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
+import { ICapAutomator } from "./interfaces/ICapAutomator.sol";
 
 contract CapAutomator is ICapAutomator, Ownable {
 
-    using WadRayMath for uint256;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+    using WadRayMath           for uint256;
 
     /**********************************************************************************************/
     /*** Declarations and Constructor                                                           ***/
