@@ -20,8 +20,8 @@ contract MockPool {
     uint256 public liquidityIndex;
     uint256 public accruedToTreasury;
 
-    mapping(address => uint256) public supplyCap;
-    mapping(address => uint256) public borrowCap;
+    uint256 public supplyCap;
+    uint256 public borrowCap;
 
     constructor() {
         aToken = new MockToken();
@@ -32,10 +32,10 @@ contract MockPool {
     /*** Pool functions                                                                         ***/
     /**********************************************************************************************/
 
-    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
+    function getReserveData(address) external view returns (DataTypes.ReserveData memory) {
         DataTypes.ReserveConfigurationMap memory configuration = DataTypes.ReserveConfigurationMap(0);
-        configuration.setBorrowCap(borrowCap[asset]);
-        configuration.setSupplyCap(supplyCap[asset]);
+        configuration.setBorrowCap(borrowCap);
+        configuration.setSupplyCap(supplyCap);
 
         return DataTypes.ReserveData({
             configuration:                      configuration,
@@ -61,24 +61,32 @@ contract MockPool {
     /*** PoolConfigurator functions                                                             ***/
     /**********************************************************************************************/
 
-    function setSupplyCap(address asset, uint256 newSupplyCap) external {
-        supplyCap[asset] = newSupplyCap;
+    function setSupplyCap(address, uint256 _supplyCap) external {
+        supplyCap = _supplyCap;
     }
 
-    function setBorrowCap(address asset, uint256 newBorrowCap) external {
-        borrowCap[asset] = newBorrowCap;
+    function setBorrowCap(address, uint256 _borrowCap) external {
+        borrowCap = _borrowCap;
     }
 
     /**********************************************************************************************/
     /*** Mock functions                                                                         ***/
     /**********************************************************************************************/
 
-    function setATokenScaledTotalSupply(uint256 newATokenScaledTotalSupply) external {
-        aToken.setScaledTotalSupply(newATokenScaledTotalSupply);
+    function setSupplyCap(uint256 _supplyCap) external {
+        supplyCap = _supplyCap;
     }
 
-    function setTotalDebt(uint256 newTotalDebt) external {
-        debtToken.setTotalSupply(newTotalDebt);
+    function setBorrowCap(uint256 _borrowCap) external {
+        borrowCap = _borrowCap;
+    }
+
+    function setATokenScaledTotalSupply(uint256 _aTokenScaledTotalSupply) external {
+        aToken.setScaledTotalSupply(_aTokenScaledTotalSupply);
+    }
+
+    function setTotalDebt(uint256 _totalDebt) external {
+        debtToken.setTotalSupply(_totalDebt);
     }
 
     function setLiquidityIndex(uint256 _liquidityIndex) external {
