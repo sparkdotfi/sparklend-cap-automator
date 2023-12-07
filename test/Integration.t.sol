@@ -3,13 +3,19 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import { IACLManager }       from "aave-v3-core/contracts/interfaces/IACLManager.sol";
-import { IPool }             from "aave-v3-core/contracts/interfaces/IPool.sol";
-import { IPoolConfigurator } from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
+import { ERC20 } from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+
+import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { IACLManager }          from "aave-v3-core/contracts/interfaces/IACLManager.sol";
+import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.sol";
+import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
 
 contract CapAutomatorIntegrationTests is Test {
+
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     address public constant POOL_ADDRESSES_PROVIDER = 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE;
     address public constant POOL                    = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
@@ -22,6 +28,7 @@ contract CapAutomatorIntegrationTests is Test {
     CapAutomator public capAutomator;
 
     IACLManager aclManager = IACLManager(ACL_MANAGER);
+    IPool       pool       =       IPool(POOL);
 
     function setUp() public {
         vm.createSelectFork(getChain('mainnet').rpcUrl, 18_721_430);
@@ -34,23 +41,127 @@ contract CapAutomatorIntegrationTests is Test {
         aclManager.addPoolAdmin(address(capAutomator));
     }
 
-    function test_runIntegrationTests() public {
-        vm.prank(SPARK_PROXY);
-        capAutomator.setSupplyCapConfig({
-            asset:                 RETH,
-            max:                100_000,
-            gap:                  5_000,
-            increaseCooldown:         0
-        });
+    function test_E2E_increaseBorrow() public {
+        address[] memory assets = pool.getReservesList();
 
-        vm.prank(SPARK_PROXY);
-        capAutomator.setBorrowCapConfig({
-            asset:                 RETH,
-            max:                100_000,
-            gap:                  5_000,
-            increaseCooldown:         0
-        });
+        for(uint256 i; i < assets.length; i++) {
+            console.log("asset", assets[i]);
 
-        capAutomator.exec(RETH);
+            DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
+
+            uint256 preIncreaseBorrowCap = reserveData.configuration.getBorrowCap();
+            if (preIncreaseBorrowCap == 0) {
+                continue;
+            }
+
+            uint256 currentBorrow = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
+
+            console.log("currentBorrow            ", currentBorrow);
+            console.log("preIncreaseBorrowCap     ", preIncreaseBorrowCap);
+
+            uint256 preIncreaseBorrowGap = preIncreaseBorrowCap - currentBorrow;
+
+            uint256 newMaxCap = preIncreaseBorrowCap * 2;
+            uint256 newGap    = preIncreaseBorrowGap * 2;
+
+            console.log("preIncreaseBorrowGap     ", preIncreaseBorrowGap);
+            console.log("preIncreaseBorrowCap * 2 ", newMaxCap);
+            console.log("preIncreaseBorrowGap * 2 ", newGap);
+
+            vm.prank(SPARK_PROXY);
+            capAutomator.setBorrowCapConfig({
+                asset:            assets[i],
+                max:              newMaxCap,
+                gap:              newGap,
+                increaseCooldown: 0
+            });
+
+            capAutomator.exec(assets[i]);
+
+            reserveData = pool.getReserveData(assets[i]);
+            uint256 postIncreaseBorrowCap = reserveData.configuration.getBorrowCap();
+
+            assertEq(postIncreaseBorrowCap, currentBorrow + newGap);
+
+            console.log("preIncreaseBorrowCap     ", preIncreaseBorrowCap);
+            console.log("postIncreaseBorrowCap    ", postIncreaseBorrowCap);
+        }
     }
+
+    // TODO
+    function test_E2E_decreaseBorrow() public {
+        address[] memory assets = pool.getReservesList();
+
+        for(uint256 i; i < assets.length; i++) {
+            console.log("asset", assets[i]);
+
+            DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
+
+            uint256 preDecreaseBorrowCap = reserveData.configuration.getBorrowCap();
+            if (preDecreaseBorrowCap == 0) {
+                continue;
+            }
+
+            uint256 currentBorrow = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
+
+            console.log("currentBorrow            ", currentBorrow);
+            console.log("preDecreaseBorrowCap     ", preDecreaseBorrowCap);
+
+            uint256 preDecreaseBorrowGap = preDecreaseBorrowCap - currentBorrow;
+
+            uint256 newGap = preDecreaseBorrowGap / 2;
+
+            console.log("preDecreaseBorrowGap     ", preDecreaseBorrowGap);
+            console.log("preDecreaseBorrowGap / 2 ", newGap);
+
+            vm.prank(SPARK_PROXY);
+            capAutomator.setBorrowCapConfig({
+                asset:            assets[i],
+                max:              preDecreaseBorrowCap,
+                gap:              newGap,
+                increaseCooldown: 0
+            });
+
+            capAutomator.exec(assets[i]);
+
+            reserveData = pool.getReserveData(assets[i]);
+            uint256 postDecreaseBorrowCap = reserveData.configuration.getBorrowCap();
+
+            assertEq(postDecreaseBorrowCap, currentBorrow + newGap);
+
+            console.log("preDecreaseBorrowCap     ", preDecreaseBorrowCap);
+            console.log("postDecreaseBorrowCap    ", postDecreaseBorrowCap);
+        }
+    }
+
+    // TODO
+    function test_E2E_increaseSupply() public {
+        address[] memory assets = pool.getReservesList();
+
+        for(uint256 i; i < assets.length; i++) {
+            console.log("asset", assets[i]);
+
+            vm.prank(SPARK_PROXY);
+            capAutomator.setSupplyCapConfig({
+                asset:                 assets[i],
+                max:                100_000,
+                gap:                  5_000,
+                increaseCooldown:         0
+            });
+
+            capAutomator.exec(assets[i]);
+        }
+    }
+
+    // TODO
+    function test_E2E_decreaseSupply() public {
+        address[] memory assets = pool.getReservesList();
+
+        for(uint256 i; i < assets.length; i++) {
+            console.log("asset", assets[i]);
+
+            capAutomator.exec(assets[i]);
+        }
+    }
+
 }
