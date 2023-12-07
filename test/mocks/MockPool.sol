@@ -17,6 +17,9 @@ contract MockPool {
     MockToken public aToken;
     MockToken public debtToken;
 
+    uint256 public liquidityIndex;
+    uint256 public accruedToTreasury;
+
     mapping(address => uint256) public supplyCap;
     mapping(address => uint256) public borrowCap;
 
@@ -36,7 +39,7 @@ contract MockPool {
 
         return DataTypes.ReserveData({
             configuration:                      configuration,
-            liquidityIndex:             uint128(0),
+            liquidityIndex:             uint128(liquidityIndex),
             currentLiquidityRate:       uint128(0),
             variableBorrowIndex:        uint128(0),
             currentVariableBorrowRate:  uint128(0),
@@ -47,7 +50,7 @@ contract MockPool {
             stableDebtTokenAddress:     address(0),
             variableDebtTokenAddress:   address(debtToken),
             interestRateStrategyAddress:address(0),
-            accruedToTreasury:          uint128(0),
+            accruedToTreasury:          uint128(accruedToTreasury),
             unbacked:                   uint128(0),
             isolationModeTotalDebt:     uint128(0)
         });
@@ -77,4 +80,13 @@ contract MockPool {
     function setTotalDebt(uint256 newTotalDebt) external {
         debtToken.setTotalSupply(newTotalDebt);
     }
+
+    function setLiquidityIndex(uint256 _liquidityIndex) external {
+        liquidityIndex = _liquidityIndex;
+    }
+
+    function setAccruedToTreasury(uint256 _accruedToTreasury) external {
+        accruedToTreasury = _accruedToTreasury;
+    }
+
 }
