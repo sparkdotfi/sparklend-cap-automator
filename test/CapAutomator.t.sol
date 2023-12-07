@@ -32,7 +32,7 @@ contract CapAutomatorUnitTestBase is Test {
         mockPool = new MockPool();
         mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
-        mockPool.setATokenTotalSupply(6_900);
+        mockPool.setATokenScaledTotalSupply(6_900);
         mockPool.setSupplyCap(asset, 7_000);
 
         mockPool.setTotalDebt(3_900);
@@ -754,7 +754,7 @@ contract UpdateSupplyCapConfigTests is Test {
 
         mockPool.setSupplyCap(asset, 7_000);
 
-        mockPool.setATokenTotalSupply(6_795);
+        mockPool.setATokenScaledTotalSupply(6_795);
         mockPool.setAccruedToTreasury(100);
         mockPool.setLiquidityIndex(1.05e27);
         // aToken.totalSupply + accruedToTreasury * liquidityIndex = 6_900
@@ -797,7 +797,7 @@ contract UpdateSupplyCapConfigTests is Test {
         vm.warp(100);
 
         mockPool.aToken().setDecimals(6);
-        mockPool.setATokenTotalSupply(6_900 * 10**6);
+        mockPool.setATokenScaledTotalSupply(6_900 * 10**6);
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig({

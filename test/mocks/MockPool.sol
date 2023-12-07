@@ -73,8 +73,8 @@ contract MockPool {
     /*** Mock functions                                                                         ***/
     /**********************************************************************************************/
 
-    function setATokenTotalSupply(uint256 newATokenTotalSupply) external {
-        aToken.setTotalSupply(newATokenTotalSupply);
+    function setATokenScaledTotalSupply(uint256 newATokenScaledTotalSupply) external {
+        aToken.setScaledTotalSupply(newATokenScaledTotalSupply);
     }
 
     function setTotalDebt(uint256 newTotalDebt) external {

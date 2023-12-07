@@ -10,6 +10,7 @@ import { WadRayMath }             from 'aave-v3-core/contracts/protocol/librarie
 import { IPoolAddressesProvider } from 'aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol';
 import { IPool }                  from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import { IPoolConfigurator }      from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
+import { IScaledBalanceToken }    from 'aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol';
 
 import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
 
@@ -154,7 +155,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 currentSupply    = (ERC20(reserveData.aTokenAddress).totalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
+        uint256 currentSupply    = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
             / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
