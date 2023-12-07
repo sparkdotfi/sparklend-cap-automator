@@ -10,6 +10,7 @@ import { WadRayMath }             from 'aave-v3-core/contracts/protocol/librarie
 import { IPoolAddressesProvider } from 'aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol';
 import { IPool }                  from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import { IPoolConfigurator }      from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
+import { IScaledBalanceToken }    from 'aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol';
 
 import { ICapAutomator }        from "./interfaces/ICapAutomator.sol";
 
@@ -51,9 +52,11 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, gap, increaseCooldown);
+        require(max > 0,                                          "CapAutomator/invalid-cap");
+        require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
+        require(gap <= max,                                       "CapAutomator/invalid-gap");
+        require(increaseCooldown <= type(uint48).max,             "CapAutomator/invalid-cooldown");
 
-        // casting from uint256 to uint48 validated in _validateCapConfig
         supplyCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
@@ -76,9 +79,11 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, gap, increaseCooldown);
+        require(max > 0,                                          "CapAutomator/invalid-cap");
+        require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
+        require(gap <= max,                                       "CapAutomator/invalid-gap");
+        require(increaseCooldown <= type(uint48).max,             "CapAutomator/invalid-cooldown");
 
-        // casting from uint256 to uint48 validated in _validateCapConfig
         borrowCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
@@ -120,17 +125,6 @@ contract CapAutomator is ICapAutomator, Ownable {
     /*** Internal Functions                                                                     ***/
     /**********************************************************************************************/
 
-    function _validateCapConfig(
-        uint256 max,
-        uint256 gap,
-        uint256 increaseCooldown
-    ) internal pure {
-        require(max > 0,                              "CapAutomator/invalid-cap");
-        require(max <= type(uint48).max,              "CapAutomator/invalid-cap");
-        require(gap <= type(uint48).max,              "CapAutomator/invalid-gap");
-        require(increaseCooldown <= type(uint48).max, "CapAutomator/invalid-cooldown");
-    }
-
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a <= b ? a : b;
     }
@@ -161,7 +155,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 currentSupply    = (ERC20(reserveData.aTokenAddress).totalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
+        uint256 currentSupply    = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
             / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
