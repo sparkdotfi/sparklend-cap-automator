@@ -5,14 +5,15 @@ import "forge-std/Test.sol";
 
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 
-import { IPool }             from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import { IPoolConfigurator } from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
-
-import { CapAutomator } from "../src/CapAutomator.sol";
+import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { IPool }                from 'aave-v3-core/contracts/interfaces/IPool.sol';
+import { IPoolConfigurator }    from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 
 import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
 import { MockPool }                  from "./mocks/MockPool.sol";
 import { CapAutomatorHarness }       from "./harnesses/CapAutomatorHarness.sol";
+
+import { CapAutomator } from "../src/CapAutomator.sol";
 
 contract CapAutomatorUnitTestBase is Test {
 
@@ -143,7 +144,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
-            uint256(type(uint48).max) + 1,
+            ReserveConfiguration.MAX_VALID_SUPPLY_CAP + 1,
             1_000,
             12 hours
         );
@@ -155,7 +156,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         capAutomator.setSupplyCapConfig(
             asset,
             10_000,
-            uint256(type(uint48).max) + 1,
+            10_001,
             12 hours
         );
     }
@@ -327,7 +328,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
-            uint256(type(uint48).max) + 1,
+            ReserveConfiguration.MAX_VALID_BORROW_CAP + 1,
             1_000,
             12 hours
         );
@@ -339,7 +340,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         capAutomator.setBorrowCapConfig(
             asset,
             10_000,
-            uint256(type(uint48).max) + 1,
+            10_001,
             12 hours
         );
     }

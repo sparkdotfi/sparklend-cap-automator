@@ -51,9 +51,11 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, gap, increaseCooldown);
+        require(max > 0,                                          "CapAutomator/invalid-cap");
+        require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
+        require(gap <= max,                                       "CapAutomator/invalid-gap");
+        require(increaseCooldown <= type(uint48).max,             "CapAutomator/invalid-cooldown");
 
-        // casting from uint256 to uint48 validated in _validateCapConfig
         supplyCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
@@ -76,9 +78,11 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external onlyOwner {
-        _validateCapConfig(max, gap, increaseCooldown);
+        require(max > 0,                                          "CapAutomator/invalid-cap");
+        require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
+        require(gap <= max,                                       "CapAutomator/invalid-gap");
+        require(increaseCooldown <= type(uint48).max,             "CapAutomator/invalid-cooldown");
 
-        // casting from uint256 to uint48 validated in _validateCapConfig
         borrowCapConfigs[asset] = CapConfig(
             uint48(max),
             uint48(gap),
@@ -119,17 +123,6 @@ contract CapAutomator is ICapAutomator, Ownable {
     /**********************************************************************************************/
     /*** Internal Functions                                                                     ***/
     /**********************************************************************************************/
-
-    function _validateCapConfig(
-        uint256 max,
-        uint256 gap,
-        uint256 increaseCooldown
-    ) internal pure {
-        require(max > 0,                              "CapAutomator/invalid-cap");
-        require(max <= type(uint48).max,              "CapAutomator/invalid-cap");
-        require(gap <= type(uint48).max,              "CapAutomator/invalid-gap");
-        require(increaseCooldown <= type(uint48).max, "CapAutomator/invalid-cooldown");
-    }
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a <= b ? a : b;
