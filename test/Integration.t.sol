@@ -17,8 +17,8 @@ import { CapAutomator } from "../src/CapAutomator.sol";
 
 contract CapAutomatorIntegrationTests is Test {
 
-    using WadRayMath for uint256;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+    using WadRayMath           for uint256;
 
     address public constant POOL_ADDRESSES_PROVIDER = 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE;
     address public constant POOL                    = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
@@ -73,9 +73,7 @@ contract CapAutomatorIntegrationTests is Test {
 
             capAutomator.exec(assets[i]);
 
-            reserveData = pool.getReserveData(assets[i]);
-
-            uint256 postIncreaseBorrowCap = reserveData.configuration.getBorrowCap();
+            uint256 postIncreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
 
             assertEq(postIncreaseBorrowCap, currentBorrow + newGap);
         }
@@ -106,9 +104,7 @@ contract CapAutomatorIntegrationTests is Test {
 
             capAutomator.exec(assets[i]);
 
-            reserveData = pool.getReserveData(assets[i]);
-
-            uint256 postDecreaseBorrowCap = reserveData.configuration.getBorrowCap();
+            uint256 postDecreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
 
             assertEq(postDecreaseBorrowCap, currentBorrow + newGap);
         }
@@ -141,9 +137,7 @@ contract CapAutomatorIntegrationTests is Test {
 
             capAutomator.exec(assets[i]);
 
-            reserveData = pool.getReserveData(assets[i]);
-
-            uint256 postIncreaseSupplyCap = reserveData.configuration.getSupplyCap();
+            uint256 postIncreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
 
             assertEq(postIncreaseSupplyCap, currentSupply + newGap);
         }
@@ -175,9 +169,7 @@ contract CapAutomatorIntegrationTests is Test {
 
             capAutomator.exec(assets[i]);
 
-            reserveData = pool.getReserveData(assets[i]);
-
-            uint256 postDecreaseSupplyCap = reserveData.configuration.getSupplyCap();
+            uint256 postDecreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
 
             assertEq(postDecreaseSupplyCap, currentSupply + newGap);
         }
