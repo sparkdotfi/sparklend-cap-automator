@@ -26,8 +26,8 @@ contract CapAutomatorUnitTestBase is Test {
     CapAutomator public capAutomator;
 
     function setUp() public {
-        owner     = makeAddr("owner");
-        asset     = makeAddr("asset");
+        owner = makeAddr("owner");
+        asset = makeAddr("asset");
 
         mockPool = new MockPool();
         mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
@@ -582,8 +582,6 @@ contract CalculateNewCapTests is Test {
         mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
         capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
-
-        capAutomator.transferOwnership(owner);
     }
 
     function test_calculateNewCap() public {
@@ -746,8 +744,8 @@ contract UpdateSupplyCapConfigTests is Test {
     CapAutomatorHarness public capAutomator;
 
     function setUp() public {
-        owner     = makeAddr("owner");
-        asset     = makeAddr("asset");
+        owner = makeAddr("owner");
+        asset = makeAddr("asset");
 
         mockPool = new MockPool();
         mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
@@ -853,8 +851,8 @@ contract UpdateBorrowCapConfigTests is Test {
     CapAutomatorHarness public capAutomator;
 
     function setUp() public {
-        owner     = makeAddr("owner");
-        asset     = makeAddr("asset");
+        owner = makeAddr("owner");
+        asset = makeAddr("asset");
 
         mockPool = new MockPool();
         mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
