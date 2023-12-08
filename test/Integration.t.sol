@@ -119,7 +119,7 @@ contract CapAutomatorIntegrationTests is Test {
                 continue;
             }
 
-            uint256 currentSupply = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
+            uint256 currentSupply = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(reserveData.liquidityIndex)
                 / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
             uint256 preIncreaseSupplyGap = preIncreaseSupplyCap - currentSupply;
@@ -152,7 +152,7 @@ contract CapAutomatorIntegrationTests is Test {
                 continue;
             }
 
-            uint256 currentSupply = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
+            uint256 currentSupply = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(reserveData.liquidityIndex)
                 / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
             uint256 preDecreaseSupplyGap = preDecreaseSupplyCap - currentSupply;
