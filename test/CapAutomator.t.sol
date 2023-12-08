@@ -6,9 +6,9 @@ import "forge-std/Test.sol";
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
-import { IPool }                from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import { IPoolConfigurator }    from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
+import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.sol";
+import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 
 import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
 import { MockPool }                  from "./mocks/MockPool.sol";
@@ -34,6 +34,7 @@ contract CapAutomatorUnitTestBase is Test {
         mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
 
         mockPool.setATokenScaledTotalSupply(6_900);
+        mockPool.setLiquidityIndex(1e27);
         mockPool.setSupplyCap(7_000);
 
         mockPool.setTotalDebt(3_900);
@@ -259,6 +260,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlock,  0);
         assertEq(lastIncreaseTime, 0);
 
+        vm.roll(100_000);
         vm.warp(12 hours);
         capAutomator.exec(asset);
 
@@ -268,8 +270,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             uint48 postExecIncreaseTime
         ) = capAutomator.supplyCapConfigs(asset);
 
-        assertNotEq(postExecUpdateBlock,  0);
-        assertNotEq(postExecIncreaseTime, 0);
+        assertEq(postExecUpdateBlock,  100_000);
+        assertEq(postExecIncreaseTime, 12 hours);
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
@@ -755,10 +757,10 @@ contract UpdateSupplyCapConfigTests is Test {
 
         mockPool.setSupplyCap(7_000);
 
-        mockPool.setATokenScaledTotalSupply(6_795);
-        mockPool.setAccruedToTreasury(100);
-        mockPool.setLiquidityIndex(1.05e27);
-        // aToken.totalSupply + accruedToTreasury * liquidityIndex = 6_900
+        mockPool.setATokenScaledTotalSupply(5_700);
+        mockPool.setAccruedToTreasury(50);
+        mockPool.setLiquidityIndex(1.2e27);
+        // (aToken.totalSupply + accruedToTreasury) * liquidityIndex = 6_900
 
         capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
 
@@ -799,6 +801,7 @@ contract UpdateSupplyCapConfigTests is Test {
 
         mockPool.aToken().setDecimals(6);
         mockPool.setATokenScaledTotalSupply(6_900 * 10**6);
+        mockPool.setLiquidityIndex(1e27);
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig({

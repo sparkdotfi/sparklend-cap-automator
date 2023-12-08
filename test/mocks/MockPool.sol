@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
 import { MockToken } from "./MockToken.sol";
 

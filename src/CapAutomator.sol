@@ -5,12 +5,12 @@ import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 import { ERC20 }   from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 import { ReserveConfiguration }   from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }              from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
-import { WadRayMath }             from 'aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol';
-import { IPoolAddressesProvider } from 'aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol';
-import { IPool }                  from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import { IPoolConfigurator }      from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
-import { IScaledBalanceToken }    from 'aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol';
+import { DataTypes }              from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { WadRayMath }             from "aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
+import { IPoolAddressesProvider } from "aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPool }                  from "aave-v3-core/contracts/interfaces/IPool.sol";
+import { IPoolConfigurator }      from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
+import { IScaledBalanceToken }    from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
 
 import { ICapAutomator } from "./interfaces/ICapAutomator.sol";
 
@@ -155,7 +155,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 currentSupply    = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.liquidityIndex).rayMul(reserveData.accruedToTreasury))
+        uint256 currentSupply    = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(reserveData.liquidityIndex)
             / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
@@ -186,6 +186,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = borrowCapConfigs[asset];
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
+        // stableDebt is not in use and is always 0
         uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
