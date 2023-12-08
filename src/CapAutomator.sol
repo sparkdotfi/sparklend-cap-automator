@@ -186,6 +186,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = borrowCapConfigs[asset];
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
+        // stableDebt is not in use and is always 0
         uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
