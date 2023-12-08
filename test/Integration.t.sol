@@ -6,12 +6,12 @@ import "forge-std/Test.sol";
 import { ERC20 } from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
-import { WadRayMath }           from 'aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol';
+import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { WadRayMath }           from "aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
 import { IACLManager }          from "aave-v3-core/contracts/interfaces/IACLManager.sol";
 import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.sol";
 import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
-import { IScaledBalanceToken }  from 'aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol';
+import { IScaledBalanceToken }  from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
 
@@ -35,7 +35,7 @@ contract CapAutomatorIntegrationTests is Test {
     IPool       pool       =       IPool(POOL);
 
     function setUp() public {
-        vm.createSelectFork(getChain('mainnet').rpcUrl, 18_721_430);
+        vm.createSelectFork(getChain("mainnet").rpcUrl, 18_721_430);
 
         capAutomator = new CapAutomator(POOL_ADDRESSES_PROVIDER);
 
