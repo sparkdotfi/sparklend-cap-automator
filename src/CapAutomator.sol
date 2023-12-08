@@ -5,12 +5,12 @@ import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 import { ERC20 }   from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 import { ReserveConfiguration }   from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }              from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
-import { WadRayMath }             from 'aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol';
-import { IPoolAddressesProvider } from 'aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol';
-import { IPool }                  from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import { IPoolConfigurator }      from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
-import { IScaledBalanceToken }    from 'aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol';
+import { DataTypes }              from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { WadRayMath }             from "aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
+import { IPoolAddressesProvider } from "aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPool }                  from "aave-v3-core/contracts/interfaces/IPool.sol";
+import { IPoolConfigurator }      from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
+import { IScaledBalanceToken }    from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
 
 import { ICapAutomator } from "./interfaces/ICapAutomator.sol";
 

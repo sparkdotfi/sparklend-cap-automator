@@ -6,9 +6,9 @@ import "forge-std/Test.sol";
 import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
-import { IPool }                from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import { IPoolConfigurator }    from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
+import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.sol";
+import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 
 import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
 import { MockPool }                  from "./mocks/MockPool.sol";
