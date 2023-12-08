@@ -12,6 +12,7 @@ import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolCon
 
 import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
 import { MockPool }                  from "./mocks/MockPool.sol";
+
 import { CapAutomatorHarness }       from "./harnesses/CapAutomatorHarness.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
@@ -138,7 +139,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         capAutomator.setSupplyCapConfig(
             asset,
             0,
-            1_000,
+            0,
             12 hours
         );
 
@@ -165,11 +166,11 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setSupplyCapConfig() public {
         (
-            uint256 max,
-            uint256 gap,
-            uint48  increaseCooldown,
-            uint48  lastUpdateBlock,
-            uint48  lastIncreaseTime
+            uint48 max,
+            uint48 gap,
+            uint48 increaseCooldown,
+            uint48 lastUpdateBlock,
+            uint48 lastIncreaseTime
         ) = capAutomator.supplyCapConfigs(asset);
 
         assertEq(max,              0);
@@ -185,7 +186,6 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             1_000,
             12 hours
         );
-
 
         (
             max,
@@ -212,9 +212,9 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         );
 
         (
-            uint256 max,
-            uint256 gap,
-            uint48  increaseCooldown,
+            uint48 max,
+            uint48 gap,
+            uint48 increaseCooldown,
             ,
         ) = capAutomator.supplyCapConfigs(asset);
 
@@ -350,11 +350,11 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
     function test_setBorrowCapConfig() public {
         (
-            uint256 max,
-            uint256 gap,
-            uint48  increaseCooldown,
-            uint48  lastUpdateBlock,
-            uint48  lastIncreaseTime
+            uint48 max,
+            uint48 gap,
+            uint48 increaseCooldown,
+            uint48 lastUpdateBlock,
+            uint48 lastIncreaseTime
         ) = capAutomator.borrowCapConfigs(asset);
 
         assertEq(max,              0);
@@ -396,9 +396,9 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         );
 
         (
-            uint256 max,
-            uint256 gap,
-            uint48  increaseCooldown,
+            uint48 max,
+            uint48 gap,
+            uint48 increaseCooldown,
             ,
         ) = capAutomator.borrowCapConfigs(asset);
 
@@ -496,9 +496,9 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
         );
 
         (
-            uint256 max,
-            uint256 gap,
-            uint48  increaseCooldown,
+            uint48 max,
+            uint48 gap,
+            uint48 increaseCooldown,
             ,
         ) = capAutomator.supplyCapConfigs(asset);
 
@@ -542,9 +542,9 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
         );
 
         (
-            uint256 max,
-            uint256 gap,
-            uint48  increaseCooldown,
+            uint48 max,
+            uint48 gap,
+            uint48 increaseCooldown,
             ,
         ) = capAutomator.borrowCapConfigs(asset);
 
@@ -757,10 +757,11 @@ contract UpdateSupplyCapConfigTests is Test {
 
         mockPool.setSupplyCap(7_000);
 
-        mockPool.setATokenScaledTotalSupply(5_700);
-        mockPool.setAccruedToTreasury(50);
+        mockPool.aToken().setDecimals(18);
+        mockPool.setATokenScaledTotalSupply(5_700e18);
+        mockPool.setAccruedToTreasury(50e18);
         mockPool.setLiquidityIndex(1.2e27);
-        // (aToken.totalSupply + accruedToTreasury) * liquidityIndex = 6_900
+        // (aToken.totalSupply + accruedToTreasury) * liquidityIndex = 6_900e18
 
         capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
 
@@ -800,8 +801,10 @@ contract UpdateSupplyCapConfigTests is Test {
         vm.warp(100);
 
         mockPool.aToken().setDecimals(6);
-        mockPool.setATokenScaledTotalSupply(6_900 * 10**6);
+        mockPool.setATokenScaledTotalSupply(6_800e6);
+        mockPool.setAccruedToTreasury(100e6);
         mockPool.setLiquidityIndex(1e27);
+        // (aToken.totalSupply + accruedToTreasury) * liquidityIndex = 6_900e6
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig({
