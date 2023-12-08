@@ -23,12 +23,4 @@ contract CapAutomatorHarness is CapAutomator {
         );
     }
 
-    function _updateSupplyCapConfigExternal(address asset) public returns (uint256) {
-        return super._updateSupplyCapConfig(asset);
-    }
-
-    function _updateBorrowCapConfigExternal(address asset) public returns (uint256) {
-        return super._updateBorrowCapConfig(asset);
-    }
-
 }

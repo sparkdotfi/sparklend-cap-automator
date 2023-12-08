@@ -155,9 +155,9 @@ interface ICapAutomator {
     /**********************************************************************************************/
 
     /**
-     *  @dev A public function that updates supply and borrow caps on markets of a given asset.
+     *  @dev A public function that updates supply and borrow caps on market of a given asset.
      *  @dev The supply and borrow caps are going to be set to, respectively, the values equal
-     *  @dev to the sum of current supply and the supply cap gap and the the sum of current borrows and the borrow cap gap.
+     *  @dev to the sum of current supply and the supply cap gap and the sum of current borrows and the borrow cap gap.
      *  @dev The caps are only going to be increased if the required cooldown time has passed.
      *  @dev Calling this function more than once per block will not have any additional effect.
      *  @param asset The address of the asset which caps are going to be updated
@@ -165,4 +165,26 @@ interface ICapAutomator {
      *  @return newBorrowCap A newly set borrow cap, or the old one if it was not updated
      */
     function exec(address asset) external returns (uint256 newSupplyCap, uint256 newBorrowCap);
+
+    /**
+     *  @dev A public function that updates supply cap on market of a given asset.
+     *  @dev The supply cap is going to be set to the value equal
+     *  @dev to the sum of current supply and the supply cap gap.
+     *  @dev The cap is only going to be increased if the required cooldown time has passed.
+     *  @dev Calling this function more than once per block will not have any additional effect.
+     *  @param asset The address of the asset which cap is going to be updated
+     *  @return newSupplyCap A newly set supply cap, or the old one if it was not updated
+     */
+    function execSupply(address asset) external returns (uint256 newSupplyCap);
+
+    /**
+     *  @dev A public function that updates borrow cap on market of a given asset.
+     *  @dev The borrow cap is going to be set to the values equal
+     *  @dev to the sum of current borrows and the borrow cap gap.
+     *  @dev The caps is only going to be increased if the required cooldown time has passed.
+     *  @dev Calling this function more than once per block will not have any additional effect.
+     *  @param asset The address of the asset which cap is going to be updated
+     *  @return newBorrowCap A newly set borrow cap, or the old one if it was not updated
+     */
+    function execBorrow(address asset) external returns (uint256 newBorrowCap);
 }

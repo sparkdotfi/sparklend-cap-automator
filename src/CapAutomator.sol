@@ -121,6 +121,14 @@ contract CapAutomator is ICapAutomator, Ownable {
         newBorrowCap = _updateBorrowCapConfig(asset);
     }
 
+    function execSupply(address asset) external override returns (uint256){
+        return _updateSupplyCapConfig(asset);
+    }
+
+    function execBorrow(address asset) external override returns (uint256){
+        return _updateBorrowCapConfig(asset);
+    }
+
     /**********************************************************************************************/
     /*** Internal Functions                                                                     ***/
     /**********************************************************************************************/
