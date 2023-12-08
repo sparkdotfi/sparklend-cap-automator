@@ -36,7 +36,7 @@ interface ICapAutomator {
 
     /**
      *  @dev Event to log the removing of a borrow cap config.
-     *  @param asset The address of the asset for which supply borrow was removed
+     *  @param asset The address of the asset for which borrow config was removed
      */
     event RemoveBorrowCapConfig(address indexed asset);
 

@@ -454,8 +454,8 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             uint48 postExecIncreaseTime
         ) = capAutomator.borrowCapConfigs(asset);
 
-        assertNotEq(postExecUpdateBlock,  0);
-        assertNotEq(postExecIncreaseTime, 0);
+        assertEq(postExecUpdateBlock,  100);
+        assertEq(postExecIncreaseTime, 12 hours);
 
         vm.prank(owner);
         capAutomator.setBorrowCapConfig(
