@@ -779,9 +779,9 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         vm.warp(100);
 
         mockPool.aToken().setDecimals(6);
-        mockPool.setATokenScaledTotalSupply(6_800e6);
+        mockPool.setATokenScaledTotalSupply(4_500e6);
         mockPool.setAccruedToTreasury(100e6);
-        mockPool.setLiquidityIndex(1e27);
+        mockPool.setLiquidityIndex(1.5e27);
         // (aToken.totalSupply + accruedToTreasury) * liquidityIndex = 6_900e6
 
         vm.prank(owner);
@@ -864,7 +864,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         vm.warp(100);
 
         mockPool.debtToken().setDecimals(18);
-        mockPool.setTotalDebt(3_900 * 10**18);
+        mockPool.setTotalDebt(3_900e18);
 
         vm.prank(owner);
         capAutomator.setBorrowCapConfig({

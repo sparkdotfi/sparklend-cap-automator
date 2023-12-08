@@ -24,7 +24,7 @@ contract MockPool {
     uint256 public borrowCap;
 
     constructor() {
-        aToken = new MockToken();
+        aToken    = new MockToken();
         debtToken = new MockToken();
     }
 
