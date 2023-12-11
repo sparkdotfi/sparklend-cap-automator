@@ -51,7 +51,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(max > 0,                                          "CapAutomator/invalid-cap");
         require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
@@ -78,7 +78,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(max > 0,                                          "CapAutomator/invalid-cap");
         require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
@@ -100,13 +100,13 @@ contract CapAutomator is ICapAutomator, Ownable {
         );
     }
 
-    function removeSupplyCapConfig(address asset) external onlyOwner {
+    function removeSupplyCapConfig(address asset) external override onlyOwner {
         delete supplyCapConfigs[asset];
 
         emit RemoveSupplyCapConfig(asset);
     }
 
-    function removeBorrowCapConfig(address asset) external onlyOwner {
+    function removeBorrowCapConfig(address asset) external override onlyOwner {
         delete borrowCapConfigs[asset];
 
         emit RemoveBorrowCapConfig(asset);
@@ -116,9 +116,17 @@ contract CapAutomator is ICapAutomator, Ownable {
     /*** Public Functions                                                                       ***/
     /**********************************************************************************************/
 
-    function exec(address asset) external returns (uint256 newSupplyCap, uint256 newBorrowCap){
+    function exec(address asset) external override returns (uint256 newSupplyCap, uint256 newBorrowCap) {
         newSupplyCap = _updateSupplyCapConfig(asset);
         newBorrowCap = _updateBorrowCapConfig(asset);
+    }
+
+    function execSupply(address asset) external override returns (uint256) {
+        return _updateSupplyCapConfig(asset);
+    }
+
+    function execBorrow(address asset) external override returns (uint256) {
+        return _updateBorrowCapConfig(asset);
     }
 
     /**********************************************************************************************/

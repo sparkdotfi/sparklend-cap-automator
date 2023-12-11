@@ -24,7 +24,7 @@ contract MockPool {
     uint256 public borrowCap;
 
     constructor() {
-        aToken = new MockToken();
+        aToken    = new MockToken();
         debtToken = new MockToken();
     }
 
@@ -54,19 +54,6 @@ contract MockPool {
             unbacked:                   uint128(0),
             isolationModeTotalDebt:     uint128(0)
         });
-    }
-
-
-    /**********************************************************************************************/
-    /*** PoolConfigurator functions                                                             ***/
-    /**********************************************************************************************/
-
-    function setSupplyCap(address, uint256 _supplyCap) external {
-        supplyCap = _supplyCap;
-    }
-
-    function setBorrowCap(address, uint256 _borrowCap) external {
-        borrowCap = _borrowCap;
     }
 
     /**********************************************************************************************/
