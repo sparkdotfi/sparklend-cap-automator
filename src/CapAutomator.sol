@@ -116,16 +116,16 @@ contract CapAutomator is ICapAutomator, Ownable {
     /*** Public Functions                                                                       ***/
     /**********************************************************************************************/
 
-    function exec(address asset) external override returns (uint256 newSupplyCap, uint256 newBorrowCap){
+    function exec(address asset) external override returns (uint256 newSupplyCap, uint256 newBorrowCap) {
         newSupplyCap = _updateSupplyCapConfig(asset);
         newBorrowCap = _updateBorrowCapConfig(asset);
     }
 
-    function execSupply(address asset) external override returns (uint256){
+    function execSupply(address asset) external override returns (uint256) {
         return _updateSupplyCapConfig(asset);
     }
 
-    function execBorrow(address asset) external override returns (uint256){
+    function execBorrow(address asset) external override returns (uint256) {
         return _updateBorrowCapConfig(asset);
     }
 
