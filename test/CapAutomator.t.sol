@@ -11,6 +11,7 @@ import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.so
 import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 
 import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
+import { MockPoolConfigurator }      from "./mocks/MockPoolConfigurator.sol";
 import { MockPool }                  from "./mocks/MockPool.sol";
 
 import { CapAutomatorHarness }       from "./harnesses/CapAutomatorHarness.sol";
@@ -21,6 +22,7 @@ contract CapAutomatorUnitTestBase is Test {
 
     MockPoolAddressesProvider public mockPoolAddressesProvider;
     MockPool                  public mockPool;
+    MockPoolConfigurator      public mockPoolConfigurator;
 
     address public owner;
     address public asset;
@@ -32,7 +34,8 @@ contract CapAutomatorUnitTestBase is Test {
         asset = makeAddr("asset");
 
         mockPool = new MockPool();
-        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
+        mockPoolConfigurator      = new MockPoolConfigurator(mockPool);
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPoolConfigurator));
 
         mockPool.setSupplyCap(7_000);
 
@@ -579,6 +582,7 @@ contract CalculateNewCapTests is Test {
 
     MockPoolAddressesProvider public mockPoolAddressesProvider;
     MockPool                  public mockPool;
+    MockPoolConfigurator      public mockPoolConfigurator;
 
     address public owner;
 
@@ -588,7 +592,8 @@ contract CalculateNewCapTests is Test {
         owner = makeAddr("owner");
 
         mockPool                  = new MockPool();
-        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPool));
+        mockPoolConfigurator      = new MockPoolConfigurator(mockPool);
+        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPoolConfigurator));
 
         capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
     }
@@ -764,7 +769,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))), 1);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))), 1);
         assertEq(capAutomator.execSupply(asset), 7_400);
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
@@ -798,7 +803,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))), 1);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))), 1);
         assertEq(capAutomator.execSupply(asset), 7_400);
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
@@ -819,7 +824,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_000))), 0);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_000))), 0);
         assertEq(capAutomator.execSupply(asset), 7_000);
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
@@ -849,7 +854,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 1);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 1);
         assertEq(capAutomator.execBorrow(asset), 4_400);
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
@@ -880,7 +885,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 1);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 1);
         assertEq(capAutomator.execBorrow(asset), 4_400);
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
@@ -901,7 +906,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_000))), 0);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_000))), 0);
         assertEq(capAutomator.execBorrow(asset), 4_000);
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
@@ -938,8 +943,8 @@ contract ExecTests is CapAutomatorUnitTestBase {
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))), 1);
-        vm.expectCall(address(mockPool), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))), 1);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))), 1);
+        vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))), 1);
 
         (uint256 newSupplyCap, uint256 newBorrowCap) = capAutomator.exec(asset);
 
