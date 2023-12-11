@@ -117,16 +117,16 @@ contract CapAutomator is ICapAutomator, Ownable {
     /**********************************************************************************************/
 
     function exec(address asset) external override returns (uint256 newSupplyCap, uint256 newBorrowCap) {
-        newSupplyCap = _updateSupplyCapConfig(asset);
-        newBorrowCap = _updateBorrowCapConfig(asset);
+        newSupplyCap = _updateSupplyCap(asset);
+        newBorrowCap = _updateBorrowCap(asset);
     }
 
     function execSupply(address asset) external override returns (uint256) {
-        return _updateSupplyCapConfig(asset);
+        return _updateSupplyCap(asset);
     }
 
     function execBorrow(address asset) external override returns (uint256) {
-        return _updateBorrowCapConfig(asset);
+        return _updateBorrowCap(asset);
     }
 
     /**********************************************************************************************/
@@ -158,12 +158,14 @@ contract CapAutomator is ICapAutomator, Ownable {
         return newCap;
     }
 
-    function _updateSupplyCapConfig(address asset) internal returns (uint256) {
+    function _updateSupplyCap(address asset) internal returns (uint256) {
         DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
-        uint256 currentSupply    = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(reserveData.liquidityIndex)
+        uint256 currentSupply    = (
+                IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)
+            ).rayMul(reserveData.liquidityIndex)
             / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
@@ -176,26 +178,27 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
-        poolConfigurator.setSupplyCap(asset, newSupplyCap);
-
         if (newSupplyCap > currentSupplyCap) {
             capConfig.lastIncreaseTime = uint48(block.timestamp);
-            capConfig.lastUpdateBlock  = uint48(block.number);
-        } else {
-            capConfig.lastUpdateBlock = uint48(block.number);
         }
 
+        capConfig.lastUpdateBlock = uint48(block.number);
+
         supplyCapConfigs[asset] = capConfig;
+
+        poolConfigurator.setSupplyCap(asset, newSupplyCap);
+
         return newSupplyCap;
     }
 
-    function _updateBorrowCapConfig(address asset) internal returns (uint256) {
+    function _updateBorrowCap(address asset) internal returns (uint256) {
         DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
         CapConfig             memory capConfig   = borrowCapConfigs[asset];
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
         // stableDebt is not in use and is always 0
-        uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
+        uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply()
+            / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
             capConfig,
@@ -207,16 +210,16 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
-        poolConfigurator.setBorrowCap(asset, newBorrowCap);
-
         if (newBorrowCap > currentBorrowCap) {
             capConfig.lastIncreaseTime = uint48(block.timestamp);
-            capConfig.lastUpdateBlock  = uint48(block.number);
-        } else {
-            capConfig.lastUpdateBlock = uint48(block.number);
         }
 
+        capConfig.lastUpdateBlock = uint48(block.number);
+
         borrowCapConfigs[asset] = capConfig;
+
+        poolConfigurator.setBorrowCap(asset, newBorrowCap);
+
         return newBorrowCap;
     }
 
