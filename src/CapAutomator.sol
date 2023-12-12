@@ -164,8 +164,10 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap    = reserveData.configuration.getSupplyCap();
-        uint256 currentScaledSupply = IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury);
-        uint256 currentSupply       = currentScaledSupply.rayMul(reserveData.liquidityIndex)
+        uint256 currentSupply       = (
+                IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply()
+                + uint256(reserveData.accruedToTreasury)
+            ).rayMul(reserveData.liquidityIndex)
             / 10 ** ERC20(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
