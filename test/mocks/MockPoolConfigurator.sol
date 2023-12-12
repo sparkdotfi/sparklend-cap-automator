@@ -16,15 +16,15 @@ contract MockPoolConfigurator {
     }
 
     /**********************************************************************************************/
-    /*** PoolConfigurator functions                                                             ***/
+    /*** PoolConfigurator Functions                                                             ***/
     /**********************************************************************************************/
 
     function setSupplyCap(address, uint256 supplyCap) external {
-        mockPool.setSupplyCap(supplyCap);
+        mockPool.__setSupplyCap(supplyCap);
     }
 
     function setBorrowCap(address, uint256 borrowCap) external {
-        mockPool.setBorrowCap(borrowCap);
+        mockPool.__setBorrowCap(borrowCap);
     }
 
 }
