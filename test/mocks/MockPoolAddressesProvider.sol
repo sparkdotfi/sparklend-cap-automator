@@ -2,6 +2,11 @@
 pragma solidity ^0.8.13;
 
 contract MockPoolAddressesProvider {
+
+    /**********************************************************************************************/
+    /*** Declarations and Constructor                                                           ***/
+    /**********************************************************************************************/
+
     address public pool;
     address public poolConfigurator;
 
@@ -10,6 +15,10 @@ contract MockPoolAddressesProvider {
         poolConfigurator = _poolConfigurator;
     }
 
+    /**********************************************************************************************/
+    /*** PoolAddressesProvider Functions                                                        ***/
+    /**********************************************************************************************/
+
     function getPool() public view returns (address) {
         return pool;
     }
@@ -17,4 +26,5 @@ contract MockPoolAddressesProvider {
     function getPoolConfigurator() public view returns (address) {
         return poolConfigurator;
     }
+
 }
