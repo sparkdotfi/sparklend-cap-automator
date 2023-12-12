@@ -15,10 +15,7 @@ import { IScaledBalanceToken }  from "aave-v3-core/contracts/interfaces/IScaledB
 
 import { CapAutomator } from "../src/CapAutomator.sol";
 
-contract CapAutomatorIntegrationTests is Test {
-
-    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
-    using WadRayMath           for uint256;
+contract CapAutomatorIntegrationTestsBase is Test {
 
     address public constant POOL_ADDRESSES_PROVIDER = 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE;
     address public constant POOL                    = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
@@ -26,6 +23,10 @@ contract CapAutomatorIntegrationTests is Test {
     address public constant DATA_PROVIDER           = 0xFc21d6d146E6086B8359705C8b28512a983db0cb;
     address public constant ACL_MANAGER             = 0xdA135Cd78A086025BcdC87B038a1C462032b510C;
     address public constant SPARK_PROXY             = 0x3300f198988e4C9C63F75dF86De36421f06af8c4;
+    address public constant WETH                    = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant WBTC                    = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+
+    address public user;
 
     address[] assets;
 
@@ -45,7 +46,16 @@ contract CapAutomatorIntegrationTests is Test {
         aclManager.addRiskAdmin(address(capAutomator));
 
         assets = pool.getReservesList();
+
+        user = makeAddr("user");
     }
+
+}
+
+contract GeneralisedTests is CapAutomatorIntegrationTestsBase {
+
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+    using WadRayMath           for uint256;
 
     function test_E2E_increaseBorrow() public {
         for(uint256 i; i < assets.length; i++) {
@@ -173,6 +183,93 @@ contract CapAutomatorIntegrationTests is Test {
 
             assertEq(postDecreaseSupplyCap, currentSupply + newGap);
         }
+    }
+
+}
+
+contract ConcreteTests is CapAutomatorIntegrationTestsBase {
+
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+    using WadRayMath           for uint256;
+
+    function test_E2E() public {
+        assertEq(ERC20(WBTC).decimals(), 8);
+
+        DataTypes.ReserveData memory reserveData = pool.getReserveData(WBTC);
+
+        // Confirm initial supply cap
+        assertEq(reserveData.configuration.getSupplyCap(), 3_000);
+
+        // Confirm initial WBTC supply
+        uint256 initialSupply = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(reserveData.liquidityIndex)
+            / 10 ** ERC20(reserveData.aTokenAddress).decimals();
+        assertEq(initialSupply, 750);
+
+        vm.prank(SPARK_PROXY);
+        capAutomator.setSupplyCapConfig({
+            asset:            WBTC,
+            max:              6_000,
+            gap:              500,
+            increaseCooldown: 12 hours
+        });
+
+        uint256 stash = 6_000e8;
+
+        vm.startPrank(user);
+
+        deal(WBTC, user, stash);
+        ERC20(WBTC).approve(POOL, stash);
+
+        pool.supply(WBTC, 2_000e8, user, 0);
+
+        vm.stopPrank();
+
+        // Confirm that WBTC supply cap didn't change yet
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_000);
+
+        capAutomator.execSupply(WBTC);
+
+        // Confirm correct WBTC supply cap increase
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
+
+        vm.roll(block.number + 1);
+        vm.prank(user);
+        pool.supply(WBTC, 250e8, user, 0);
+
+        // Check the cap is not changing before cooldown passes
+        capAutomator.execSupply(WBTC);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
+
+        // Check correct cap increase after cooldown
+        skip(24 hours);
+        capAutomator.execSupply(WBTC);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_500);
+
+        vm.roll(block.number + 1);
+        vm.prank(user);
+        pool.withdraw(WBTC, 125e8, user);
+
+        // Check correct cap decrease
+        capAutomator.execSupply(WBTC);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_375);
+
+        vm.prank(user);
+        pool.withdraw(WBTC, 125e8, user);
+
+        // Check the cap is not changing in the same block
+        capAutomator.execSupply(WBTC);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_375);
+
+        // Check correct cap decrease after block changes
+        vm.roll(block.number + 1);
+        capAutomator.execSupply(WBTC);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
+
+
+        // TODO Borrow something against that WBTC and test borrow caps
+        // uint256 initialBorrowCap = reserveData.configuration.getBorrowCap();
+        // uint256 initialBorrow = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
+
     }
 
 }
