@@ -42,7 +42,7 @@ contract CapAutomatorIntegrationTests is Test {
         capAutomator.transferOwnership(SPARK_PROXY);
 
         vm.prank(SPARK_PROXY);
-        aclManager.addPoolAdmin(address(capAutomator));
+        aclManager.addRiskAdmin(address(capAutomator));
 
         assets = pool.getReservesList();
     }
