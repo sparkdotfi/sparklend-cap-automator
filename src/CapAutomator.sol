@@ -57,8 +57,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
         supplyCapConfigs[asset] = CapConfig(
-            _uint48(max),
-            _uint48(gap),
+            uint48(max),
+            uint48(gap),
             _uint48(increaseCooldown),
             supplyCapConfigs[asset].lastUpdateBlock,
             supplyCapConfigs[asset].lastIncreaseTime
@@ -83,8 +83,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
         borrowCapConfigs[asset] = CapConfig(
-            _uint48(max),
-            _uint48(gap),
+            uint48(max),
+            uint48(gap),
             _uint48(increaseCooldown),
             borrowCapConfigs[asset].lastUpdateBlock,
             borrowCapConfigs[asset].lastIncreaseTime
