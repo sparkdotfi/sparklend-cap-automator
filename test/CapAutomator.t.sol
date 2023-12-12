@@ -152,7 +152,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        assertEq(MAX_VALID_SUPPLY_CAP, 68719476735);
+        assertEq(ReserveConfiguration.MAX_VALID_SUPPLY_CAP, 68719476735);
     }
 
     function test_setSupplyCapConfig_invalidGap() public {
@@ -326,7 +326,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        assertEq(MAX_VALID_BORROW_CAP, 68719476735);
+        assertEq(ReserveConfiguration.MAX_VALID_BORROW_CAP, 68719476735);
     }
 
     function test_setBorrowCapConfig_invalidGap() public {
