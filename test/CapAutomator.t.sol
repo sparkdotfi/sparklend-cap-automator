@@ -13,7 +13,6 @@ import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolCon
 import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
 import { MockPoolConfigurator }      from "./mocks/MockPoolConfigurator.sol";
 import { MockPool }                  from "./mocks/MockPool.sol";
-
 import { CapAutomatorHarness }       from "./harnesses/CapAutomatorHarness.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
@@ -43,7 +42,7 @@ contract CapAutomatorUnitTestBase is Test {
         mockPool.__setATokenScaledTotalSupply(5_700e18);
         mockPool.__setAccruedToTreasury(50e18);
         mockPool.__setLiquidityIndex(1.2e27);
-        // (aToken.totalSupply + accruedToTreasury) * liquidityIndex = 6_900e18
+        // (aToken. scaledTotalSupply + accruedToTreasury) * liquidityIndex = 6_900e18
 
         mockPool.__setBorrowCap(4_000);
 
@@ -94,13 +93,21 @@ contract TransferOwnershipTests is CapAutomatorUnitTestBase {
         assertEq(capAutomator.owner(), newOwner);
     }
 
+}
+
+contract RenounceOwnershipTests is CapAutomatorUnitTestBase {
+
     function test_renounceOwnership_noAuth() public {
+        assertEq(capAutomator.owner(), owner);
+
         vm.prank(makeAddr("notOwner"));
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
         capAutomator.renounceOwnership();
     }
 
     function test_renounceOwnership() public {
+        assertEq(capAutomator.owner(), owner);
+
         vm.prank(owner);
         capAutomator.renounceOwnership();
 
@@ -133,8 +140,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         );
     }
 
-    function test_setSupplyCapConfig_invalidCap() public {
-        vm.expectRevert("CapAutomator/invalid-cap");
+    function test_setSupplyCapConfig_zeroCap() public {
+        vm.expectRevert("CapAutomator/zero-cap");
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
@@ -142,7 +149,9 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             0,
             12 hours
         );
+    }
 
+    function test_setSupplyCapConfig_invalidCap() public {
         vm.expectRevert("CapAutomator/invalid-cap");
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
@@ -152,7 +161,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        assertEq(ReserveConfiguration.MAX_VALID_SUPPLY_CAP, 68719476735);
+        assertEq(ReserveConfiguration.MAX_VALID_SUPPLY_CAP, 68_719_476_735);
     }
 
     function test_setSupplyCapConfig_invalidGap() public {
@@ -253,18 +262,18 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        ( ,,,uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.supplyCapConfigs(asset);
+        ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.supplyCapConfigs(asset);
 
         assertEq(lastUpdateBlock,  0);
         assertEq(lastIncreaseTime, 0);
 
-        vm.roll(100_000);
+        vm.roll(120_000);
         vm.warp(12 hours);
         capAutomator.exec(asset);
 
-        ( ,,,uint48 postExecUpdateBlock, uint48 postExecIncreaseTime ) = capAutomator.supplyCapConfigs(asset);
+        ( ,,, uint48 postExecUpdateBlock, uint48 postExecIncreaseTime ) = capAutomator.supplyCapConfigs(asset);
 
-        assertEq(postExecUpdateBlock,  100_000);
+        assertEq(postExecUpdateBlock,  120_000);
         assertEq(postExecIncreaseTime, 12 hours);
 
         vm.prank(owner);
@@ -275,7 +284,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             24 hours
         );
 
-        ( ,,,uint48 postReconfigUpdateBlock, uint48 postReconfigIncreaseTime ) = capAutomator.supplyCapConfigs(asset);
+        ( ,,, uint48 postReconfigUpdateBlock, uint48 postReconfigIncreaseTime ) = capAutomator.supplyCapConfigs(asset);
 
         assertEq(postReconfigUpdateBlock,  postExecUpdateBlock);
         assertEq(postReconfigIncreaseTime, postExecIncreaseTime);
@@ -307,8 +316,8 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         );
     }
 
-    function test_setBorrowCapConfig_invalidCap() public {
-        vm.expectRevert("CapAutomator/invalid-cap");
+    function test_setBorrowCapConfig_zeroCap() public {
+        vm.expectRevert("CapAutomator/zero-cap");
         vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
@@ -316,7 +325,9 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             1_000,
             12 hours
         );
+    }
 
+    function test_setBorrowCapConfig_invalidCap() public {
         vm.expectRevert("CapAutomator/invalid-cap");
         vm.prank(owner);
         capAutomator.setBorrowCapConfig(
@@ -326,7 +337,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        assertEq(ReserveConfiguration.MAX_VALID_BORROW_CAP, 68719476735);
+        assertEq(ReserveConfiguration.MAX_VALID_BORROW_CAP, 68_719_476_735);
     }
 
     function test_setBorrowCapConfig_invalidGap() public {
@@ -427,18 +438,18 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        ( ,,,uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.borrowCapConfigs(asset);
+        ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.borrowCapConfigs(asset);
 
         assertEq(lastUpdateBlock,  0);
         assertEq(lastIncreaseTime, 0);
 
+        vm.roll(600);
         vm.warp(12 hours);
-        vm.roll(100);
         capAutomator.exec(asset);
 
-        ( ,,,uint48 postExecUpdateBlock, uint48 postExecIncreaseTime ) = capAutomator.borrowCapConfigs(asset);
+        ( ,,, uint48 postExecUpdateBlock, uint48 postExecIncreaseTime ) = capAutomator.borrowCapConfigs(asset);
 
-        assertEq(postExecUpdateBlock,  100);
+        assertEq(postExecUpdateBlock,  600);
         assertEq(postExecIncreaseTime, 12 hours);
 
         vm.prank(owner);
@@ -449,7 +460,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             24 hours
         );
 
-        ( ,,,uint48 postReconfigUpdateBlock, uint48 postReconfigIncreaseTime ) = capAutomator.borrowCapConfigs(asset);
+        ( ,,, uint48 postReconfigUpdateBlock, uint48 postReconfigIncreaseTime ) = capAutomator.borrowCapConfigs(asset);
 
         assertEq(postReconfigUpdateBlock,  postExecUpdateBlock);
         assertEq(postReconfigIncreaseTime, postExecIncreaseTime);
@@ -466,7 +477,6 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
     }
 
     function test_removeSupplyCapConfig() public {
-
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
@@ -479,12 +489,15 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
             uint48 max,
             uint48 gap,
             uint48 increaseCooldown,
-            ,
+            uint48 lastUpdateBlock,
+            uint48 lastIncreaseTime
         ) = capAutomator.supplyCapConfigs(asset);
 
         assertEq(max,              10_000);
         assertEq(gap,              1_000);
         assertEq(increaseCooldown, 12 hours);
+        assertEq(lastUpdateBlock,  0);
+        assertEq(lastIncreaseTime, 0);
 
         vm.prank(owner);
         capAutomator.removeSupplyCapConfig(asset);
@@ -493,12 +506,15 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
             max,
             gap,
             increaseCooldown,
-            ,
+            lastUpdateBlock,
+            lastIncreaseTime
         ) = capAutomator.supplyCapConfigs(asset);
 
         assertEq(max,              0);
         assertEq(gap,              0);
         assertEq(increaseCooldown, 0);
+        assertEq(lastUpdateBlock,  0);
+        assertEq(lastIncreaseTime, 0);
     }
 
 }
@@ -524,12 +540,15 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
             uint48 max,
             uint48 gap,
             uint48 increaseCooldown,
-            ,
+            uint48 lastUpdateBlock,
+            uint48 lastIncreaseTime
         ) = capAutomator.borrowCapConfigs(asset);
 
         assertEq(max,              10_000);
         assertEq(gap,              1_000);
         assertEq(increaseCooldown, 12 hours);
+        assertEq(lastUpdateBlock,  0);
+        assertEq(lastIncreaseTime, 0);
 
         vm.prank(owner);
         capAutomator.removeBorrowCapConfig(asset);
@@ -538,12 +557,15 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
             max,
             gap,
             increaseCooldown,
-            ,
+            lastUpdateBlock,
+            lastIncreaseTime
         ) = capAutomator.borrowCapConfigs(asset);
 
         assertEq(max,              0);
         assertEq(gap,              0);
         assertEq(increaseCooldown, 0);
+        assertEq(lastUpdateBlock,  0);
+        assertEq(lastIncreaseTime, 0);
     }
 
 }
@@ -568,7 +590,7 @@ contract CalculateNewCapTests is Test {
         capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider));
     }
 
-    function test_calculateNewCap() public {
+    function test_calculateNewCap_raiseCap() public {
         uint256 newCap = capAutomator._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
@@ -599,7 +621,7 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap_sameBlock() public {
-        vm.roll(100);
+        vm.roll(250);
         uint256 newCap = capAutomator._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
@@ -618,7 +640,7 @@ contract CalculateNewCapTests is Test {
                 max:              5_000,
                 gap:              500,
                 increaseCooldown: 0,
-                lastUpdateBlock:  100,
+                lastUpdateBlock:  250,
                 lastIncreaseTime: 0
             }),
             1_900,
@@ -722,8 +744,8 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     function test_execSupply() public {
-        vm.roll(100);
-        vm.warp(100);
+        vm.roll(900);
+        vm.warp(900_000);
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig({
@@ -735,29 +757,30 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        ( ,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.supplyCapConfigs(asset);
+        ( ,,, uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.supplyCapConfigs(asset);
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))), 1);
         assertEq(capAutomator.execSupply(asset), 7_400);
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 500 = 6900 + 500 = 7400
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
 
-        ( ,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.supplyCapConfigs(asset);
-        assertEq(lastUpdateBlockAfter,  100);
-        assertEq(lastIncreaseTimeAfter, 100);
+        ( ,,, uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.supplyCapConfigs(asset);
+        assertEq(lastUpdateBlockAfter,  900);
+        assertEq(lastIncreaseTimeAfter, 900_000);
     }
 
     function test_execSupply_differentDecimals() public {
-        vm.roll(100);
-        vm.warp(100);
+        vm.roll(300);
+        vm.warp(300_000);
 
         mockPool.aToken().__setDecimals(6);
         mockPool.__setATokenScaledTotalSupply(4_500e6);
         mockPool.__setAccruedToTreasury(100e6);
         mockPool.__setLiquidityIndex(1.5e27);
-        // (aToken.totalSupply + accruedToTreasury) * liquidityIndex = 6_900e6
+        // (aToken. scaledTotalSupply + accruedToTreasury) * liquidityIndex = 6_900e6
 
         vm.prank(owner);
         capAutomator.setSupplyCapConfig({
@@ -769,18 +792,19 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        ( ,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.supplyCapConfigs(asset);
+        ( ,,, uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.supplyCapConfigs(asset);
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))), 1);
         assertEq(capAutomator.execSupply(asset), 7_400);
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 500 = 6900 + 500 = 7400
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
 
-        ( ,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.supplyCapConfigs(asset);
-        assertEq(lastUpdateBlockAfter,  100);
-        assertEq(lastIncreaseTimeAfter, 100);
+        ( ,,, uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.supplyCapConfigs(asset);
+        assertEq(lastUpdateBlockAfter,  300);
+        assertEq(lastIncreaseTimeAfter, 300_000);
     }
 
     function test_execSupply_sameCap() public {
@@ -796,6 +820,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_000))), 0);
         assertEq(capAutomator.execSupply(asset), 7_000);
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 100 = 6900 + 100 = 7000
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
     }
@@ -808,7 +833,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
     function test_execBorrow() public {
         vm.roll(100);
-        vm.warp(100);
+        vm.warp(100_000);
 
         vm.prank(owner);
         capAutomator.setBorrowCapConfig({
@@ -820,23 +845,24 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        ( ,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.borrowCapConfigs(asset);
+        ( ,,, uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.borrowCapConfigs(asset);
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 1);
         assertEq(capAutomator.execBorrow(asset), 4_400);
+        // totalDebt + gap = 3900 + 500 = 4400
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
 
-        ( ,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.borrowCapConfigs(asset);
+        ( ,,, uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.borrowCapConfigs(asset);
         assertEq(lastUpdateBlockAfter,  100);
-        assertEq(lastIncreaseTimeAfter, 100);
+        assertEq(lastIncreaseTimeAfter, 100_000);
     }
 
     function test_execBorrow_differentDecimals() public {
-        vm.roll(100);
-        vm.warp(100);
+        vm.roll(200);
+        vm.warp(200_000);
 
         mockPool.debtToken().__setDecimals(6);
         mockPool.__setTotalDebt(3_900e6);
@@ -851,18 +877,19 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        ( ,,,uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.borrowCapConfigs(asset);
+        ( ,,, uint48 lastUpdateBlockBefore, uint48 lastIncreaseTimeBefore ) = capAutomator.borrowCapConfigs(asset);
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 1);
         assertEq(capAutomator.execBorrow(asset), 4_400);
+        // totalDebt + gap = 3900 + 500 = 4400
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
 
-        ( ,,,uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.borrowCapConfigs(asset);
-        assertEq(lastUpdateBlockAfter,  100);
-        assertEq(lastIncreaseTimeAfter, 100);
+        ( ,,, uint48 lastUpdateBlockAfter, uint48 lastIncreaseTimeAfter ) = capAutomator.borrowCapConfigs(asset);
+        assertEq(lastUpdateBlockAfter,  200);
+        assertEq(lastIncreaseTimeAfter, 200_000);
     }
 
     function test_execBorrow_sameCap() public {
@@ -878,6 +905,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_000))), 0);
         assertEq(capAutomator.execBorrow(asset), 4_000);
+        // totalDebt + gap = 3900 + 100 = 4000
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
     }
@@ -892,8 +920,8 @@ contract ExecTests is CapAutomatorUnitTestBase {
         mockPool.__setSupplyCap(7_000);
         mockPool.__setBorrowCap(4_000);
 
-        vm.roll(100);
-        vm.warp(100);
+        vm.roll(500);
+        vm.warp(500_000);
 
         vm.startPrank(owner);
         capAutomator.setSupplyCapConfig({
@@ -914,7 +942,9 @@ contract ExecTests is CapAutomatorUnitTestBase {
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))), 1);
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 400 = 6900 + 400 = 7300
         vm.expectCall(address(mockPoolConfigurator), abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))), 1);
+        // totalDebt + gap = 3900 + 300 = 4200
 
         ( uint256 newSupplyCap, uint256 newBorrowCap ) = capAutomator.exec(asset);
 
@@ -1006,6 +1036,7 @@ contract EventTests is CapAutomatorUnitTestBase {
 
         vm.expectEmit(address(capAutomator));
         emit UpdateSupplyCap(asset, 7_000, 7_300);
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 400 = 6900 + 400 = 7300
         capAutomator.exec(asset);
     }
 
@@ -1020,6 +1051,7 @@ contract EventTests is CapAutomatorUnitTestBase {
 
         vm.expectEmit(address(capAutomator));
         emit UpdateBorrowCap(asset, 4_000, 4_200);
+        // totalDebt + gap = 3900 + 300 = 4200
         capAutomator.exec(asset);
     }
 
