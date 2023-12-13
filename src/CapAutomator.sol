@@ -52,7 +52,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external override onlyOwner {
-        require(max > 0,                                          "CapAutomator/invalid-cap");
+        require(max > 0,                                          "CapAutomator/zero-cap");
         require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
@@ -78,7 +78,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 gap,
         uint256 increaseCooldown
     ) external override onlyOwner {
-        require(max > 0,                                          "CapAutomator/invalid-cap");
+        require(max > 0,                                          "CapAutomator/zero-cap");
         require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
@@ -151,6 +151,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         uint256 newCap = _min(currentValue + capConfig.gap, max);
 
+        // Cap cannot be increased before cooldown passes, but can be decreased
         if (
             newCap > currentCap
             && block.timestamp < (capConfig.lastIncreaseTime + capConfig.increaseCooldown)
@@ -164,7 +165,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap    = reserveData.configuration.getSupplyCap();
-        uint256 currentSupply       = (
+
+        uint256 currentSupply = (
                 IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply()
                 + uint256(reserveData.accruedToTreasury)
             ).rayMul(reserveData.liquidityIndex)
@@ -198,8 +200,10 @@ contract CapAutomator is ICapAutomator, Ownable {
         CapConfig             memory capConfig   = borrowCapConfigs[asset];
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
-        // stableDebt is not in use and is always 0
-        uint256 currentBorrow    = ERC20(reserveData.variableDebtTokenAddress).totalSupply()
+
+        // `stableDebt` is not in use and is always 0
+        uint256 currentBorrow =
+            ERC20(reserveData.variableDebtTokenAddress).totalSupply()
             / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
