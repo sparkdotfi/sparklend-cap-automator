@@ -98,8 +98,6 @@ contract TransferOwnershipTests is CapAutomatorUnitTestBase {
 contract RenounceOwnershipTests is CapAutomatorUnitTestBase {
 
     function test_renounceOwnership_noAuth() public {
-        assertEq(capAutomator.owner(), owner);
-
         vm.prank(makeAddr("notOwner"));
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
         capAutomator.renounceOwnership();
@@ -565,6 +563,11 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
+        vm.roll(24);
+        vm.warp(24 hours);
+
+        capAutomator.execSupply(asset);
+
         (
             uint48 max,
             uint48 gap,
@@ -576,8 +579,8 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(max,              10_000);
         assertEq(gap,              1_000);
         assertEq(increaseCooldown, 12 hours);
-        assertEq(lastUpdateBlock,  0);
-        assertEq(lastIncreaseTime, 0);
+        assertEq(lastUpdateBlock,  24);
+        assertEq(lastIncreaseTime, 24 hours);
 
         vm.prank(owner);
         capAutomator.removeSupplyCapConfig(asset);
@@ -616,6 +619,11 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
+        vm.roll(36);
+        vm.warp(36 hours);
+
+        capAutomator.execBorrow(asset);
+
         (
             uint48 max,
             uint48 gap,
@@ -627,8 +635,8 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
         assertEq(max,              10_000);
         assertEq(gap,              1_000);
         assertEq(increaseCooldown, 12 hours);
-        assertEq(lastUpdateBlock,  0);
-        assertEq(lastIncreaseTime, 0);
+        assertEq(lastUpdateBlock,  36);
+        assertEq(lastIncreaseTime, 36 hours);
 
         vm.prank(owner);
         capAutomator.removeBorrowCapConfig(asset);
