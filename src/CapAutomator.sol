@@ -164,7 +164,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
-        uint256 currentSupplyCap    = reserveData.configuration.getSupplyCap();
+        uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
 
         uint256 currentSupply = (
                 IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply()
