@@ -33,10 +33,10 @@ contract CapAutomatorIntegrationTestsBase is Test {
     CapAutomator public capAutomator;
 
     IACLManager aclManager = IACLManager(ACL_MANAGER);
-    IPool       pool       =       IPool(POOL);
+    IPool pool             = IPool(POOL);
 
     function setUp() public {
-        vm.createSelectFork(getChain("mainnet").rpcUrl, 18_721_430);
+        vm.createSelectFork(getChain("mainnet").rpcUrl, 18721430);
 
         capAutomator = new CapAutomator(POOL_ADDRESSES_PROVIDER);
 
