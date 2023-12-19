@@ -52,12 +52,12 @@ contract CapAutomatorIntegrationTestsBase is Test {
         user = makeAddr("user");
     }
 
-    function currentATokenSupply(DataTypes.ReserveData memory _reserveData) internal returns (uint256) {
+    function currentATokenSupply(DataTypes.ReserveData memory _reserveData) internal view returns (uint256) {
         return (IScaledBalanceToken(_reserveData.aTokenAddress).scaledTotalSupply() + uint256(_reserveData.accruedToTreasury)).rayMul(_reserveData.liquidityIndex)
             / 10 ** ERC20(_reserveData.aTokenAddress).decimals();
     }
 
-    function currentBorrows(DataTypes.ReserveData memory _reserveData) internal returns (uint256) {
+    function currentBorrows(DataTypes.ReserveData memory _reserveData) internal view returns (uint256) {
         return ERC20(_reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(_reserveData.variableDebtTokenAddress).decimals();
     }
 
@@ -72,15 +72,23 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preIncreaseBorrowCap = reserveData.configuration.getBorrowCap();
-            if (preIncreaseBorrowCap == 0) {
-                continue;
-            }
-
             uint256 currentBorrow        = currentBorrows(reserveData);
-            uint256 preIncreaseBorrowGap = preIncreaseBorrowCap - currentBorrow;
 
-            uint256 newMaxCap = preIncreaseBorrowCap * 2;
-            uint256 newGap    = preIncreaseBorrowGap * 2;
+            uint256 newMaxCap;
+            uint256 newGap;
+
+            if (preIncreaseBorrowCap != 0) { // if there is a borrow cap, we set config based on it
+                uint256 preIncreaseBorrowGap = preIncreaseBorrowCap - currentBorrow;
+
+                newMaxCap = preIncreaseBorrowCap * 2;
+                newGap    = preIncreaseBorrowGap * 2;
+            } else if (currentBorrow != 0) { // if there is unlimited borrowing, we set config based on current borrows
+                newMaxCap = currentBorrow * 4;
+                newGap    = currentBorrow * 2;
+            } else { // if there is no cap and no borrows, we pick some arbitrary values for the config
+                newMaxCap = 2_000;
+                newGap    = 1_000;
+            }
 
             vm.prank(SPARK_PROXY);
             capAutomator.setBorrowCapConfig({
@@ -106,6 +114,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             if (preDecreaseBorrowCap == 0) {
                 continue;
             }
+            // if there is a cap we will attempt to decrease it, but if there is no cap, we won't be able to decrease it
 
             uint256 currentBorrow        = currentBorrows(reserveData);
             uint256 preDecreaseBorrowGap = preDecreaseBorrowCap - currentBorrow;
@@ -133,20 +142,27 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preIncreaseSupplyCap = reserveData.configuration.getSupplyCap();
-            if (preIncreaseSupplyCap == 0) {
-                continue;
-            }
-
             uint256 currentSupply        = currentATokenSupply(reserveData);
-            uint256 preIncreaseSupplyGap = preIncreaseSupplyCap - currentSupply;
 
-            uint256 newCap = preIncreaseSupplyCap * 2;
-            uint256 newGap = preIncreaseSupplyGap * 2;
+            uint256 newMaxCap;
+            uint256 newGap;
+
+            if (preIncreaseSupplyCap != 0) { // if there is a supply cap, we set config based on it
+                uint256 preIncreaseSupplyGap = preIncreaseSupplyCap - currentSupply;
+                newMaxCap = preIncreaseSupplyCap * 2;
+                newGap = preIncreaseSupplyGap * 2;
+            } else if (currentSupply != 0) { // if there is unlimited supplying, we set config based on current supply
+                newMaxCap = currentSupply * 4;
+                newGap    = currentSupply * 2;
+            } else { // if there is no cap and no supply, we pick some arbitrary values for the config
+                newMaxCap = 2_000;
+                newGap    = 1_000;
+            }
 
             vm.prank(SPARK_PROXY);
             capAutomator.setSupplyCapConfig({
                 asset:            assets[i],
-                max:              newCap,
+                max:              newMaxCap,
                 gap:              newGap,
                 increaseCooldown: 12 hours
             });
@@ -167,6 +183,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             if (preDecreaseSupplyCap == 0) {
                 continue;
             }
+            // if there is a cap we will attempt to decrease it, but if there is no cap, we won't be able to decrease it
 
             uint256 currentSupply        = currentATokenSupply(reserveData);
             uint256 preDecreaseSupplyGap = preDecreaseSupplyCap - currentSupply;
