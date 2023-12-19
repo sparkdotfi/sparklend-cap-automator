@@ -98,15 +98,18 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 increaseCooldown: 12 hours
             });
 
+            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.borrowCapConfigs(assets[i]);
+            assertEq(lastUpdateBlock,  0);
+            assertEq(lastIncreaseTime, 0);
+
             capAutomator.exec(assets[i]);
 
-            uint256 postIncreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
-
-            assertEq(postIncreaseBorrowCap, currentBorrow + newGap);
-
-            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.borrowCapConfigs(assets[i]);
+            ( ,,, lastUpdateBlock, lastIncreaseTime ) = capAutomator.borrowCapConfigs(assets[i]);
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, block.timestamp);
+
+            uint256 postIncreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
+            assertEq(postIncreaseBorrowCap, currentBorrow + newGap);
         }
     }
 
@@ -133,15 +136,18 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 increaseCooldown: 12 hours
             });
 
+            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.borrowCapConfigs(assets[i]);
+            assertEq(lastUpdateBlock,  0);
+            assertEq(lastIncreaseTime, 0);
+
             capAutomator.exec(assets[i]);
 
-            uint256 postDecreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
-
-            assertEq(postDecreaseBorrowCap, currentBorrow + newGap);
-
-            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.borrowCapConfigs(assets[i]);
+            ( ,,, lastUpdateBlock, lastIncreaseTime ) = capAutomator.borrowCapConfigs(assets[i]);
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, 0);
+
+            uint256 postDecreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
+            assertEq(postDecreaseBorrowCap, currentBorrow + newGap);
         }
     }
 
@@ -175,15 +181,18 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 increaseCooldown: 12 hours
             });
 
+            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.supplyCapConfigs(assets[i]);
+            assertEq(lastUpdateBlock,  0);
+            assertEq(lastIncreaseTime, 0);
+
             capAutomator.exec(assets[i]);
 
-            uint256 postIncreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
-
-            assertEq(postIncreaseSupplyCap, currentSupply + newGap);
-
-            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.supplyCapConfigs(assets[i]);
+            ( ,,, lastUpdateBlock, lastIncreaseTime ) = capAutomator.supplyCapConfigs(assets[i]);
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, block.timestamp);
+
+            uint256 postIncreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
+            assertEq(postIncreaseSupplyCap, currentSupply + newGap);
         }
     }
 
@@ -210,15 +219,18 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 increaseCooldown: 12 hours
             });
 
+            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.supplyCapConfigs(assets[i]);
+            assertEq(lastUpdateBlock,  0);
+            assertEq(lastIncreaseTime, 0);
+
             capAutomator.exec(assets[i]);
 
-            uint256 postDecreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
-
-            assertEq(postDecreaseSupplyCap, currentSupply + newGap);
-
-            ( ,,, uint48 lastUpdateBlock, uint48 lastIncreaseTime ) = capAutomator.supplyCapConfigs(assets[i]);
+            ( ,,, lastUpdateBlock, lastIncreaseTime ) = capAutomator.supplyCapConfigs(assets[i]);
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, 0);
+
+            uint256 postDecreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
+            assertEq(postDecreaseSupplyCap, currentSupply + newGap);
         }
     }
 
