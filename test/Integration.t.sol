@@ -17,6 +17,8 @@ import { CapAutomator } from "../src/CapAutomator.sol";
 
 contract CapAutomatorIntegrationTestsBase is Test {
 
+    using WadRayMath for uint256;
+
     address public constant POOL_ADDRESSES_PROVIDER = 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE;
     address public constant POOL                    = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
     address public constant POOL_CONFIG             = 0x542DBa469bdE58FAeE189ffB60C6b49CE60E0738;
@@ -50,12 +52,20 @@ contract CapAutomatorIntegrationTestsBase is Test {
         user = makeAddr("user");
     }
 
+    function currentATokenSupply(DataTypes.ReserveData memory _reserveData) internal returns (uint256) {
+        return (IScaledBalanceToken(_reserveData.aTokenAddress).scaledTotalSupply() + uint256(_reserveData.accruedToTreasury)).rayMul(_reserveData.liquidityIndex)
+            / 10 ** ERC20(_reserveData.aTokenAddress).decimals();
+    }
+
+    function currentBorrows(DataTypes.ReserveData memory _reserveData) internal returns (uint256) {
+        return ERC20(_reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(_reserveData.variableDebtTokenAddress).decimals();
+    }
+
 }
 
-contract GeneralisedTests is CapAutomatorIntegrationTestsBase {
+contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
-    using WadRayMath           for uint256;
 
     function test_E2E_increaseBorrow() public {
         for(uint256 i; i < assets.length; i++) {
@@ -66,8 +76,7 @@ contract GeneralisedTests is CapAutomatorIntegrationTestsBase {
                 continue;
             }
 
-            uint256 currentBorrow = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
-
+            uint256 currentBorrow        = currentBorrows(reserveData);
             uint256 preIncreaseBorrowGap = preIncreaseBorrowCap - currentBorrow;
 
             uint256 newMaxCap = preIncreaseBorrowCap * 2;
@@ -98,8 +107,7 @@ contract GeneralisedTests is CapAutomatorIntegrationTestsBase {
                 continue;
             }
 
-            uint256 currentBorrow = ERC20(reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
-
+            uint256 currentBorrow        = currentBorrows(reserveData);
             uint256 preDecreaseBorrowGap = preDecreaseBorrowCap - currentBorrow;
 
             uint256 newGap = preDecreaseBorrowGap / 2;
@@ -129,9 +137,7 @@ contract GeneralisedTests is CapAutomatorIntegrationTestsBase {
                 continue;
             }
 
-            uint256 currentSupply = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(reserveData.liquidityIndex)
-                / 10 ** ERC20(reserveData.aTokenAddress).decimals();
-
+            uint256 currentSupply        = currentATokenSupply(reserveData);
             uint256 preIncreaseSupplyGap = preIncreaseSupplyCap - currentSupply;
 
             uint256 newCap = preIncreaseSupplyCap * 2;
@@ -162,9 +168,7 @@ contract GeneralisedTests is CapAutomatorIntegrationTestsBase {
                 continue;
             }
 
-            uint256 currentSupply = (IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(reserveData.liquidityIndex)
-                / 10 ** ERC20(reserveData.aTokenAddress).decimals();
-
+            uint256 currentSupply        = currentATokenSupply(reserveData);
             uint256 preDecreaseSupplyGap = preDecreaseSupplyCap - currentSupply;
 
             uint256 newGap = preDecreaseSupplyGap / 2;
@@ -201,8 +205,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         assertEq(wbtcReserveData.configuration.getSupplyCap(), 3_000);
 
         // Confirm initial WBTC supply
-        uint256 initialSupply = (IScaledBalanceToken(wbtcReserveData.aTokenAddress).scaledTotalSupply() + uint256(wbtcReserveData.accruedToTreasury)).rayMul(wbtcReserveData.liquidityIndex)
-            / 10 ** ERC20(wbtcReserveData.aTokenAddress).decimals();
+        uint256 initialSupply = currentATokenSupply(wbtcReserveData);
         assertEq(initialSupply, 750);
 
         vm.prank(SPARK_PROXY);
@@ -230,8 +233,8 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         capAutomator.execSupply(WBTC);
 
         // Confirm correct WBTC supply cap increase
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
         // initialSupply + newlySupplied + gap = 750 + 2_000 + 500 = 3_250
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
 
         vm.roll(block.number + 1);
         vm.prank(user);
@@ -244,8 +247,8 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check correct cap increase after cooldown
         skip(24 hours);
         capAutomator.execSupply(WBTC);
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_500);
         // initialSupply + suppliedBefore + newlySupplied + gap = 750 + 2_000 + 250 + 500 = 3_500
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_500);
 
         vm.roll(block.number + 1);
         vm.prank(user);
@@ -253,8 +256,8 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
 
         // Check correct cap decrease
         capAutomator.execSupply(WBTC);
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_375);
         // previousSupply + gap - justWithdrawn = 3_000 + 500 - 125 = 3_375
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_375);
 
         vm.prank(user);
         pool.withdraw(WBTC, 125e8, user);
@@ -266,8 +269,8 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check correct cap decrease after block changes
         vm.roll(block.number + 1);
         capAutomator.execSupply(WBTC);
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
         // previousSupply + gap - justWithdrawn = 2_875 + 500 - 125 = 3_250
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
 
         assertEq(ERC20(WETH).decimals(), 18);
 
@@ -278,7 +281,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         assertEq(initialBorrowCap, 1_400_000);
 
         // Confirm initial borrows
-        uint256 initialBorrows = ERC20(wethReserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(wethReserveData.variableDebtTokenAddress).decimals();
+        uint256 initialBorrows = currentBorrows(wethReserveData);
         assertEq(initialBorrows, 126_530);
 
         vm.prank(SPARK_PROXY);
@@ -291,8 +294,8 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
 
         // Check correct cap decrease
         capAutomator.execBorrow(WETH);
-        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_530);
         // totalDebt + gap = 126_530 + 100_000 = 226_530
+        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_530);
 
         vm.prank(user);
         pool.borrow(WETH, 470e18, 2 /* variable rate mode */, 0, user);
@@ -304,8 +307,8 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check correct cap increase in the new block
         vm.roll(block.number + 1);
         capAutomator.execBorrow(WETH);
-        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
         // totalDebt + gap = initialBorrows + newlyBorrowed + gap = 126_530 + 470 + 100_000 = 227_000
+        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
     }
 
 }
