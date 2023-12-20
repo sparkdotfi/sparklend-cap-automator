@@ -35,7 +35,7 @@ contract CapAutomatorIntegrationTestsBase is Test {
     CapAutomator public capAutomator;
 
     IACLManager aclManager = IACLManager(ACL_MANAGER);
-    IPool pool             = IPool(POOL);
+    IPool       pool       = IPool(POOL);
 
     function setUp() public {
         vm.createSelectFork(getChain("mainnet").rpcUrl, 18721430);
@@ -68,7 +68,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     function test_E2E_increaseBorrow() public {
-        for(uint256 i; i < assets.length; i++) {
+        for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preIncreaseBorrowCap = reserveData.configuration.getBorrowCap();
@@ -77,15 +77,15 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             uint256 newMaxCap;
             uint256 newGap;
 
-            if (preIncreaseBorrowCap != 0) { // if there is a borrow cap, we set config based on it
+            if (preIncreaseBorrowCap != 0) {  // If there is a borrow cap, set config based on it
                 uint256 preIncreaseBorrowGap = preIncreaseBorrowCap - currentBorrow;
 
                 newMaxCap = preIncreaseBorrowCap * 2;
                 newGap    = preIncreaseBorrowGap * 2;
-            } else if (currentBorrow != 0) { // if there is unlimited borrowing, we set config based on current borrows
+            } else if (currentBorrow != 0) {  // If there is unlimited borrowing, set config based on current borrows
                 newMaxCap = currentBorrow * 4;
                 newGap    = currentBorrow * 2;
-            } else { // if there is no cap and no borrows, we pick some arbitrary values for the config
+            } else {  // If there is no cap and no borrows, use arbitrary values for the config
                 newMaxCap = 2_000;
                 newGap    = 1_000;
             }
@@ -114,14 +114,14 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
     }
 
     function test_E2E_decreaseBorrow() public {
-        for(uint256 i; i < assets.length; i++) {
+        for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preDecreaseBorrowCap = reserveData.configuration.getBorrowCap();
             if (preDecreaseBorrowCap == 0) {
                 continue;
             }
-            // if there is a cap we will attempt to decrease it, but if there is no cap, we won't be able to decrease it
+            // If there is a cap a decrease will be attempted, but if there is no cap, decrease is not posssible
 
             uint256 currentBorrow        = currentBorrows(reserveData);
             uint256 preDecreaseBorrowGap = preDecreaseBorrowCap - currentBorrow;
@@ -152,7 +152,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
     }
 
     function test_E2E_increaseSupply() public {
-        for(uint256 i; i < assets.length; i++) {
+        for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preIncreaseSupplyCap = reserveData.configuration.getSupplyCap();
@@ -161,14 +161,14 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             uint256 newMaxCap;
             uint256 newGap;
 
-            if (preIncreaseSupplyCap != 0) { // if there is a supply cap, we set config based on it
+            if (preIncreaseSupplyCap != 0) {  // If there is a supply cap, set config based on it
                 uint256 preIncreaseSupplyGap = preIncreaseSupplyCap - currentSupply;
                 newMaxCap = preIncreaseSupplyCap * 2;
-                newGap = preIncreaseSupplyGap * 2;
-            } else if (currentSupply != 0) { // if there is unlimited supplying, we set config based on current supply
+                newGap    = preIncreaseSupplyGap * 2;
+            } else if (currentSupply != 0) {  // If there is unlimited supplying, set config based on current supply
                 newMaxCap = currentSupply * 4;
                 newGap    = currentSupply * 2;
-            } else { // if there is no cap and no supply, we pick some arbitrary values for the config
+            } else {  // If there is no cap and no supply, use arbitrary values for the config
                 newMaxCap = 2_000;
                 newGap    = 1_000;
             }
@@ -197,14 +197,14 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
     }
 
     function test_E2E_decreaseSupply() public {
-        for(uint256 i; i < assets.length; i++) {
+        for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preDecreaseSupplyCap = reserveData.configuration.getSupplyCap();
             if (preDecreaseSupplyCap == 0) {
                 continue;
             }
-            // if there is a cap we will attempt to decrease it, but if there is no cap, we won't be able to decrease it
+            // If there is a cap a decrease will be attempted, but if there is no cap, decrease is not posssible
 
             uint256 currentSupply        = currentATokenSupply(reserveData);
             uint256 preDecreaseSupplyGap = preDecreaseSupplyCap - currentSupply;
@@ -347,7 +347,6 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         pool.supply(WBTC, 2_000e8, user, 0);
 
         vm.stopPrank();
-
 
         // Check correct cap decrease
         capAutomator.execBorrow(WETH);
