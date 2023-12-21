@@ -67,7 +67,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
-    function test_E2E_increaseBorrow() public {
+    function test_E2E_increaseBorrowCap() public {
         for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
@@ -80,10 +80,12 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             if (preIncreaseBorrowCap != 0) {  // If there is a borrow cap, set config based on it
                 uint256 preIncreaseBorrowGap = preIncreaseBorrowCap - currentBorrow;
 
-                newMaxCap = preIncreaseBorrowCap * 2;
-                newGap    = preIncreaseBorrowGap * 2;
+                newMaxCap = preIncreaseBorrowCap * 2;  // Increase the max cap so cap increase is possible
+                newGap    = preIncreaseBorrowGap * 2;  // Increase the gap so cap will be increased higher than the current cap
             } else if (currentBorrow != 0) {  // If there is unlimited borrowing, set config based on current borrows
                 newMaxCap = currentBorrow * 4;
+                // Set the gap to a value strictly less than the maxCap so that the cap can be increased by the gap instead
+                // of being limited by the max cap.
                 newGap    = currentBorrow * 2;
             } else {  // If there is no cap and no borrows, use arbitrary values for the config
                 newMaxCap = 2_000;
@@ -113,20 +115,20 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
         }
     }
 
-    function test_E2E_decreaseBorrow() public {
+    function test_E2E_decreaseBorrowCap() public {
         for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preDecreaseBorrowCap = reserveData.configuration.getBorrowCap();
+            // If there is a cap a decrease will be attempted, but if there is no cap, decrease is not possible
             if (preDecreaseBorrowCap == 0) {
                 continue;
             }
-            // If there is a cap a decrease will be attempted, but if there is no cap, decrease is not posssible
 
             uint256 currentBorrow        = currentBorrows(reserveData);
             uint256 preDecreaseBorrowGap = preDecreaseBorrowCap - currentBorrow;
 
-            uint256 newGap = preDecreaseBorrowGap / 2;
+            uint256 newGap = preDecreaseBorrowGap / 3;
 
             vm.prank(SPARK_PROXY);
             capAutomator.setBorrowCapConfig({
@@ -151,7 +153,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
         }
     }
 
-    function test_E2E_increaseSupply() public {
+    function test_E2E_increaseSupplyCap() public {
         for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
@@ -163,10 +165,12 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
 
             if (preIncreaseSupplyCap != 0) {  // If there is a supply cap, set config based on it
                 uint256 preIncreaseSupplyGap = preIncreaseSupplyCap - currentSupply;
-                newMaxCap = preIncreaseSupplyCap * 2;
-                newGap    = preIncreaseSupplyGap * 2;
+                newMaxCap = preIncreaseSupplyCap * 2;  // Increase the max cap so cap increase is possible
+                newGap    = preIncreaseSupplyGap * 2;  // Increase the gap so cap will be increased higher than the current cap
             } else if (currentSupply != 0) {  // If there is unlimited supplying, set config based on current supply
                 newMaxCap = currentSupply * 4;
+                // Set the gap to a value strictly less than the maxCap so that the cap can be increased by the gap instead
+                // of being limited by the max cap.
                 newGap    = currentSupply * 2;
             } else {  // If there is no cap and no supply, use arbitrary values for the config
                 newMaxCap = 2_000;
@@ -196,20 +200,20 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
         }
     }
 
-    function test_E2E_decreaseSupply() public {
+    function test_E2E_decreaseSupplyCap() public {
         for (uint256 i; i < assets.length; i++) {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preDecreaseSupplyCap = reserveData.configuration.getSupplyCap();
+            // If there is a cap a decrease will be attempted, but if there is no cap, decrease is not possible
             if (preDecreaseSupplyCap == 0) {
                 continue;
             }
-            // If there is a cap a decrease will be attempted, but if there is no cap, decrease is not posssible
 
             uint256 currentSupply        = currentATokenSupply(reserveData);
             uint256 preDecreaseSupplyGap = preDecreaseSupplyCap - currentSupply;
 
-            uint256 newGap = preDecreaseSupplyGap / 2;
+            uint256 newGap = preDecreaseSupplyGap / 3;
 
             vm.prank(SPARK_PROXY);
             capAutomator.setSupplyCapConfig({
@@ -299,9 +303,9 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         vm.prank(user);
         pool.withdraw(WBTC, 125e8, user);
 
-        // Check correct cap decrease
+        // Check correct cap decrease (without cooldown)
         capAutomator.execSupply(WBTC);
-        // previousSupply + gap - justWithdrawn = 3_000 + 500 - 125 = 3_375
+        // previousSupply - justWithdrawn + gap = 3_000 - 125 + 500 = 3_375
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_375);
 
         vm.prank(user);
@@ -314,7 +318,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check correct cap decrease after block changes
         vm.roll(block.number + 1);
         capAutomator.execSupply(WBTC);
-        // previousSupply + gap - justWithdrawn = 2_875 + 500 - 125 = 3_250
+        // previousSupply - justWithdrawn + gap = 2_875 - 125 + 500 = 3_250
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
     }
 
@@ -365,6 +369,21 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         capAutomator.execBorrow(WETH);
         // totalDebt + gap = initialBorrows + newlyBorrowed + gap = 126_520 + 480 + 100_000 = 227_000
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
+
+        vm.prank(user);
+        pool.borrow(WETH, 100e18, 2 /* variable rate mode */, 0, user);
+
+        vm.roll(block.number + 1);
+        // Check the cap is not changing before cooldown passes
+        capAutomator.execBorrow(WETH);
+        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
+
+        // Check correct cap increase after cooldown
+        skip(24 hours);
+        capAutomator.execBorrow(WETH);
+        // totalDebt + gap = initialBorrows + previouslyBorrowed + justBorrowed + debtAccruedIn24h + gap
+        // = 126_520 + 480 + 100 + 10 + 100_000 = 227_000
+        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_110);
     }
 
 }
