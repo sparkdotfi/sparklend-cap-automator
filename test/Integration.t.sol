@@ -10,7 +10,6 @@ import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/
 import { WadRayMath }           from "aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
 import { IACLManager }          from "aave-v3-core/contracts/interfaces/IACLManager.sol";
 import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.sol";
-import { IPoolConfigurator }    from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
 import { IScaledBalanceToken }  from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
