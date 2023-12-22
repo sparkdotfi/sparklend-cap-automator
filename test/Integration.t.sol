@@ -369,19 +369,30 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // totalDebt + gap = initialBorrows + newlyBorrowed + gap = 126_520 + 480 + 100_000 = 227_000
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
 
+        vm.startPrank(user);
+        ERC20(WETH).approve(POOL, 50e18);
+        pool.repay(WETH, 50e18, 2 /* variable rate mode */, user);
+        vm.stopPrank();
+
+        // Check correct cap decrease without cooldown passing
+        vm.roll(block.number + 1);
+        capAutomator.execBorrow(WETH);
+        // totalDebt + gap = initialBorrows + previouslyBorrowed - newlyRepaid + gap = 126_520 + 480 - 50 + 100_000 = 226_950
+        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_950);
+
         vm.prank(user);
-        pool.borrow(WETH, 100e18, 2 /* variable rate mode */, 0, user);
+        pool.borrow(WETH, 150e18, 2 /* variable rate mode */, 0, user);
 
         vm.roll(block.number + 1);
-        // Check the cap is not changing before cooldown passes
+        // Check the cap is not increasing before cooldown passes
         capAutomator.execBorrow(WETH);
-        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
+        assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_950);
 
         // Check correct cap increase after cooldown
         skip(24 hours);
         capAutomator.execBorrow(WETH);
-        // totalDebt + gap = initialBorrows + previouslyBorrowed + justBorrowed + debtAccruedIn24h + gap
-        // = 126_520 + 480 + 100 + 10 + 100_000 = 227_000
+        // totalDebt + gap = initialBorrows + previouslyBorrowed - previouslyRepaid + justBorrowed + debtAccruedIn24h + gap
+        // = 126_520 + 480 - 50 + 150 + 10 + 100_000 = 227_000
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_110);
     }
 
