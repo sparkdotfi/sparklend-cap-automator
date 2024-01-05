@@ -149,6 +149,25 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
 
             uint256 postDecreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
             assertEq(postDecreaseBorrowCap, currentBorrow + newGap);
+
+            if (currentBorrow >= 3) {  // "> 0", but also so "/ 3" makes sense
+                vm.roll(block.number + 1);
+
+                uint256 borrowCapBelowState = currentBorrow / 3;
+
+                vm.prank(SPARK_PROXY);
+                capAutomator.setBorrowCapConfig({
+                    asset:            assets[i],
+                    max:              borrowCapBelowState,
+                    gap:              0,
+                    increaseCooldown: 12 hours
+                });
+
+                capAutomator.exec(assets[i]);
+
+                postDecreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
+                assertEq(postDecreaseBorrowCap, borrowCapBelowState);
+            }
         }
     }
 
@@ -234,6 +253,25 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
 
             uint256 postDecreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
             assertEq(postDecreaseSupplyCap, currentSupply + newGap);
+
+            if (currentSupply >= 3) {  // "> 0", but also so "/ 3" makes sense
+                vm.roll(block.number + 1);
+
+                uint256 supplyCapBelowState = currentSupply / 3;
+
+                vm.prank(SPARK_PROXY);
+                capAutomator.setSupplyCapConfig({
+                    asset:            assets[i],
+                    max:              supplyCapBelowState,
+                    gap:              0,
+                    increaseCooldown: 12 hours
+                });
+
+                capAutomator.exec(assets[i]);
+
+                postDecreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
+                assertEq(postDecreaseSupplyCap, supplyCapBelowState);
+            }
         }
     }
 
