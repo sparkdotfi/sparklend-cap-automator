@@ -159,7 +159,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 capAutomator.setBorrowCapConfig({
                     asset:            assets[i],
                     max:              borrowCapBelowState,
-                    gap:              0,
+                    gap:              1,
                     increaseCooldown: 12 hours
                 });
 
@@ -263,7 +263,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 capAutomator.setSupplyCapConfig({
                     asset:            assets[i],
                     max:              supplyCapBelowState,
-                    gap:              0,
+                    gap:              1,
                     increaseCooldown: 12 hours
                 });
 

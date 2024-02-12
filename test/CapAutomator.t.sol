@@ -148,8 +148,27 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
+            2,
             1,
+            12 hours
+        );
+    }
+
+    function test_setSupplyCapConfig_zeroGap() public {
+        vm.expectRevert("CapAutomator/zero-gap");
+        vm.prank(owner);
+        capAutomator.setSupplyCapConfig(
+            asset,
+            2,
             0,
+            12 hours
+        );
+
+        vm.prank(owner);
+        capAutomator.setSupplyCapConfig(
+            asset,
+            2,
+            1,
             12 hours
         );
     }
@@ -364,8 +383,27 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
         vm.prank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
+            2,
             1,
+            12 hours
+        );
+    }
+
+    function test_setBorrowCapConfig_zeroGap() public {
+        vm.expectRevert("CapAutomator/zero-gap");
+        vm.prank(owner);
+        capAutomator.setBorrowCapConfig(
+            asset,
+            2,
             0,
+            12 hours
+        );
+
+        vm.prank(owner);
+        capAutomator.setBorrowCapConfig(
+            asset,
+            2,
+            1,
             12 hours
         );
     }

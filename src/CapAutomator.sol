@@ -53,6 +53,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 increaseCooldown
     ) external override onlyOwner {
         require(max > 0,                                          "CapAutomator/zero-cap");
+        require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
@@ -79,6 +80,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 increaseCooldown
     ) external override onlyOwner {
         require(max > 0,                                          "CapAutomator/zero-cap");
+        require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
