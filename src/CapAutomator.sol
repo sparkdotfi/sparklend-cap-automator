@@ -180,8 +180,6 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         if (newSupplyCap == currentSupplyCap) return currentSupplyCap;
 
-        emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
-
         if (newSupplyCap > currentSupplyCap) {
             capConfig.lastIncreaseTime = _uint48(block.timestamp);
         }
@@ -191,6 +189,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         supplyCapConfigs[asset] = capConfig;
 
         poolConfigurator.setSupplyCap(asset, newSupplyCap);
+
+        emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
         return newSupplyCap;
     }
@@ -214,8 +214,6 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         if (newBorrowCap == currentBorrowCap) return currentBorrowCap;
 
-        emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
-
         if (newBorrowCap > currentBorrowCap) {
             capConfig.lastIncreaseTime = _uint48(block.timestamp);
         }
@@ -225,6 +223,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         borrowCapConfigs[asset] = capConfig;
 
         poolConfigurator.setBorrowCap(asset, newBorrowCap);
+
+        emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
         return newBorrowCap;
     }
