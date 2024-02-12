@@ -99,12 +99,16 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function removeSupplyCapConfig(address asset) external override onlyOwner {
+        require(supplyCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
+
         delete supplyCapConfigs[asset];
 
         emit RemoveSupplyCapConfig(asset);
     }
 
     function removeBorrowCapConfig(address asset) external override onlyOwner {
+        require(borrowCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
+
         delete borrowCapConfigs[asset];
 
         emit RemoveBorrowCapConfig(asset);

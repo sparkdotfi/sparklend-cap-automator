@@ -554,6 +554,13 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
         capAutomator.removeSupplyCapConfig(asset);
     }
 
+    function test_removeSupplyCapConfig_nonexistentConfig() public {
+        vm.prank(owner);
+        vm.expectRevert("CapAutomator/nonexistent-config");
+        capAutomator.removeSupplyCapConfig(asset);
+    }
+
+
     function test_removeSupplyCapConfig() public {
         vm.prank(owner);
         capAutomator.setSupplyCapConfig(
@@ -607,6 +614,12 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
     function test_removeBorrowCapConfig_noAuth() public {
         vm.prank(makeAddr("notOwner"));
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, makeAddr("notOwner")));
+        capAutomator.removeBorrowCapConfig(asset);
+    }
+
+    function test_removeBorrowCapConfig_nonexistentConfig() public {
+        vm.prank(owner);
+        vm.expectRevert("CapAutomator/nonexistent-config");
         capAutomator.removeBorrowCapConfig(asset);
     }
 
@@ -1149,17 +1162,31 @@ contract EventTests is CapAutomatorUnitTestBase {
     }
 
     function test_RemoveSupplyCapConfig() public {
-        vm.prank(owner);
+        vm.startPrank(owner);
+        capAutomator.setSupplyCapConfig(
+            asset,
+            20_000,
+            2_000,
+            24 hours
+        );
         vm.expectEmit(address(capAutomator));
         emit RemoveSupplyCapConfig(asset);
         capAutomator.removeSupplyCapConfig(asset);
+        vm.stopPrank();
     }
 
     function test_RemoveBorrowCapConfig() public {
-        vm.prank(owner);
+        vm.startPrank(owner);
+        capAutomator.setBorrowCapConfig(
+            asset,
+            10_000,
+            1_000,
+            12 hours
+        );
         vm.expectEmit(address(capAutomator));
         emit RemoveBorrowCapConfig(asset);
         capAutomator.removeBorrowCapConfig(asset);
+        vm.stopPrank();
     }
 
     function test_UpdateSupplyCap() public {
