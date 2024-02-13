@@ -1156,7 +1156,7 @@ contract EventTests is CapAutomatorUnitTestBase {
     event UpdateSupplyCap(address indexed asset, uint256 oldSupplyCap, uint256 newSupplyCap);
     event UpdateBorrowCap(address indexed asset, uint256 oldBorrowCap, uint256 newBorrowCap);
 
-    function test_ownershipTransferred() public {
+    function test_OwnershipTransferred() public {
         address newOwner = makeAddr("newOwner");
         vm.prank(owner);
         vm.expectEmit(address(capAutomator));
@@ -1164,7 +1164,7 @@ contract EventTests is CapAutomatorUnitTestBase {
         capAutomator.transferOwnership(newOwner);
     }
 
-    function test_setSupplyCapConfig() public {
+    function test_SetSupplyCapConfig() public {
         vm.prank(owner);
         vm.expectEmit(address(capAutomator));
         emit SetSupplyCapConfig(
@@ -1181,7 +1181,7 @@ contract EventTests is CapAutomatorUnitTestBase {
         );
     }
 
-    function test_setBorrowCapConfig() public {
+    function test_SetBorrowCapConfig() public {
         vm.prank(owner);
         vm.expectEmit(address(capAutomator));
         emit SetBorrowCapConfig(
@@ -1198,7 +1198,7 @@ contract EventTests is CapAutomatorUnitTestBase {
         );
     }
 
-    function test_removeSupplyCapConfig() public {
+    function test_RemoveSupplyCapConfig() public {
         vm.startPrank(owner);
         capAutomator.setSupplyCapConfig(
             asset,
@@ -1212,7 +1212,7 @@ contract EventTests is CapAutomatorUnitTestBase {
         vm.stopPrank();
     }
 
-    function test_removeBorrowCapConfig() public {
+    function test_RemoveBorrowCapConfig() public {
         vm.startPrank(owner);
         capAutomator.setBorrowCapConfig(
             asset,
@@ -1226,7 +1226,7 @@ contract EventTests is CapAutomatorUnitTestBase {
         vm.stopPrank();
     }
 
-    function test_updateSupplyCap() public {
+    function test_UpdateSupplyCap() public {
         vm.prank(owner);
         capAutomator.setSupplyCapConfig({
             asset:            asset,
@@ -1241,7 +1241,7 @@ contract EventTests is CapAutomatorUnitTestBase {
         capAutomator.exec(asset);
     }
 
-    function test_updateBorrowCap() public {
+    function test_UpdateBorrowCap() public {
         vm.prank(owner);
         capAutomator.setBorrowCapConfig({
             asset:            asset,
