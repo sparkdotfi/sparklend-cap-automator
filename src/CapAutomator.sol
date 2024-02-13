@@ -53,6 +53,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 increaseCooldown
     ) external override onlyOwner {
         require(max > 0,                                          "CapAutomator/zero-cap");
+        require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
@@ -79,6 +80,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 increaseCooldown
     ) external override onlyOwner {
         require(max > 0,                                          "CapAutomator/zero-cap");
+        require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
         require(gap <= max,                                       "CapAutomator/invalid-gap");
 
@@ -99,12 +101,16 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function removeSupplyCapConfig(address asset) external override onlyOwner {
+        require(supplyCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
+
         delete supplyCapConfigs[asset];
 
         emit RemoveSupplyCapConfig(asset);
     }
 
     function removeBorrowCapConfig(address asset) external override onlyOwner {
+        require(borrowCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
+
         delete borrowCapConfigs[asset];
 
         emit RemoveBorrowCapConfig(asset);
@@ -180,8 +186,6 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         if (newSupplyCap == currentSupplyCap) return currentSupplyCap;
 
-        emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
-
         if (newSupplyCap > currentSupplyCap) {
             capConfig.lastIncreaseTime = _uint48(block.timestamp);
         }
@@ -191,6 +195,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         supplyCapConfigs[asset] = capConfig;
 
         poolConfigurator.setSupplyCap(asset, newSupplyCap);
+
+        emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
         return newSupplyCap;
     }
@@ -214,8 +220,6 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         if (newBorrowCap == currentBorrowCap) return currentBorrowCap;
 
-        emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
-
         if (newBorrowCap > currentBorrowCap) {
             capConfig.lastIncreaseTime = _uint48(block.timestamp);
         }
@@ -225,6 +229,8 @@ contract CapAutomator is ICapAutomator, Ownable {
         borrowCapConfigs[asset] = capConfig;
 
         poolConfigurator.setBorrowCap(asset, newBorrowCap);
+
+        emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 
         return newBorrowCap;
     }
