@@ -515,7 +515,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Confirm the cap increase even though the supply effectively didn't change
         DataTypes.ReserveData memory postFlashloanReserveData = pool.getReserveData(WBTC);
         assertEq(currentATokenSupply(postFlashloanReserveData),         750);
-        assertEq(postFlashloanReserveData.configuration.getSupplyCap(), 840);
+        assertEq(postFlashloanReserveData.configuration.getSupplyCap(), 850);
 
         // Confirm that in the next block, before increase cooldown passes, cap can be decreased
         vm.roll(block.number + 1);
@@ -548,35 +548,44 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         address,
         bytes calldata
     ) external returns (bool) {
+        DataTypes.ReserveData memory initialReserveData = pool.getReserveData(WBTC);
+
+        uint256 currentExactSupply = (IScaledBalanceToken(initialReserveData.aTokenAddress).scaledTotalSupply() + uint256(initialReserveData.accruedToTreasury))
+            .rayMul(initialReserveData.liquidityIndex);
+        uint256 dust = currentExactSupply % 1e8;
+
+        // Confirm that at the beginning the max possible supply is the gap value minus the dust
+        assertEq(initialReserveData.configuration.getSupplyCap() * 1e8 - currentExactSupply, 50e8 - dust);
+
         // Supply additional funds to the pool, bring the supply closer to the cap than the gap
-        IERC20(asset).approve(address(pool), 40e8);
-        pool.supply(WBTC, 40e8, address(this), 0);
+        IERC20(asset).approve(address(pool), 50e8 - dust);
+        pool.supply(WBTC, 50e8 - dust, address(this), 0);
 
         // Confirm previous cap before the update
-        // initialSupply + gap = 750 + 50 = 800
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 800);
+        // initialSupply + gap = (750 + dust) + 50 = 800
+        assertEq(initialReserveData.configuration.getSupplyCap(), 800);
 
         // Confirm the cap can be correctly increased
-        // initialSupply + suppliedFunds + gap = 750 + 40 + 50 = 840
+        // initialSupply + maxPossibleSupplyBeforeCapIncrease + gap = (750 + dust) + (50 - dust) + 50 = 850
         capAutomator.execSupply(WBTC);
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 840);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 850);
 
         // Supply more funds to attempt a second cap increase
-        IERC20(asset).approve(address(pool), 40e8);
-        pool.supply(WBTC, 40e8, address(this), 0);
+        IERC20(asset).approve(address(pool), 50e8);
+        pool.supply(WBTC, 50e8, address(this), 0);
 
         // Confirm the cap cannot be increased twice
-        // initialSupply + totalsuppliedFunds + gap = 750 + 80 + 50 = 880
+        // initialSupply + totalSuppliedFunds + gap = (750 + dust) + (100 - dust) + 50 = 900
         capAutomator.execSupply(WBTC);
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 840);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 850);
 
         // Withdraw funds to pay back the flashloan
-        pool.withdraw(WBTC, 80e8, address(this));
+        pool.withdraw(WBTC, 100e8 - dust, address(this));
 
         // Confirm the cap cannot be decreased in the same block, even though the supply came back to the initial state
-        // initialSupply + totalsuppliedFunds - withdrawnFunds + gap = 750 + 80 - 80 + 50 = 800
+        // initialSupply + totalSuppliedFunds - withdrawnFunds + gap = (750 + dust) + (100 - dust) - (100 - dust) + 50 = 800
         capAutomator.execSupply(WBTC);
-        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 840);
+        assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 850);
 
         IERC20(asset).approve(address(pool), amount);
 
