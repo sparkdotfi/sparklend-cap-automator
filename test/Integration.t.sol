@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import { ERC20 } from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import { IERC20 } from "openzeppelin-contracts/interfaces/IERC20.sol";
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
@@ -13,6 +13,10 @@ import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.so
 import { IScaledBalanceToken }  from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
+
+interface IERC20WitDecimals is IERC20 {
+    function decimals() external view returns (uint8);
+}
 
 contract CapAutomatorIntegrationTestsBase is Test {
 
@@ -53,11 +57,11 @@ contract CapAutomatorIntegrationTestsBase is Test {
 
     function currentATokenSupply(DataTypes.ReserveData memory _reserveData) internal view returns (uint256) {
         return (IScaledBalanceToken(_reserveData.aTokenAddress).scaledTotalSupply() + uint256(_reserveData.accruedToTreasury)).rayMul(_reserveData.liquidityIndex)
-            / 10 ** ERC20(_reserveData.aTokenAddress).decimals();
+            / 10 ** IERC20WitDecimals(_reserveData.aTokenAddress).decimals();
     }
 
     function currentBorrows(DataTypes.ReserveData memory _reserveData) internal view returns (uint256) {
-        return ERC20(_reserveData.variableDebtTokenAddress).totalSupply() / 10 ** ERC20(_reserveData.variableDebtTokenAddress).decimals();
+        return IERC20(_reserveData.variableDebtTokenAddress).totalSupply() / 10 ** IERC20WitDecimals(_reserveData.variableDebtTokenAddress).decimals();
     }
 
 }
@@ -285,7 +289,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
     uint256 USERS_STASH = 6_000e8;
 
     function test_E2E_supply_wbtc() public {
-        assertEq(ERC20(WBTC).decimals(), 8);
+        assertEq(IERC20WitDecimals(WBTC).decimals(), 8);
 
         DataTypes.ReserveData memory wbtcReserveData = pool.getReserveData(WBTC);
 
@@ -307,7 +311,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         vm.startPrank(user);
 
         deal(WBTC, user, USERS_STASH);
-        ERC20(WBTC).approve(POOL, USERS_STASH);
+        IERC20(WBTC).approve(POOL, USERS_STASH);
 
         pool.supply(WBTC, 2_000e8, user, 0);
 
@@ -381,7 +385,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
     }
 
     function test_E2E_borrow_weth() public {
-        assertEq(ERC20(WETH).decimals(), 18);
+        assertEq(IERC20WitDecimals(WETH).decimals(), 18);
 
         DataTypes.ReserveData memory wethReserveData = pool.getReserveData(WETH);
 
@@ -404,7 +408,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         vm.startPrank(user);
 
         deal(WBTC, user, USERS_STASH);
-        ERC20(WBTC).approve(POOL, USERS_STASH);
+        IERC20(WBTC).approve(POOL, USERS_STASH);
 
         pool.supply(WBTC, 2_000e8, user, 0);
 
@@ -429,7 +433,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
 
         vm.startPrank(user);
-        ERC20(WETH).approve(POOL, 50e18);
+        IERC20(WETH).approve(POOL, 50e18);
         pool.repay(WETH, 50e18, 2 /* variable rate mode */, user);
         vm.stopPrank();
 
@@ -481,7 +485,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         DataTypes.ReserveData memory initialReserveData = pool.getReserveData(WBTC);
 
         // Confirm initial state
-        assertEq(ERC20(WBTC).decimals(),                          8);
+        assertEq(IERC20WitDecimals(WBTC).decimals(),                          8);
         assertEq(currentATokenSupply(initialReserveData),         750);
         assertEq(initialReserveData.configuration.getSupplyCap(), 3_000);
 
@@ -522,7 +526,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         skip(6 hours);
 
         deal(WBTC, address(this), 40e8);
-        ERC20(WBTC).approve(address(pool), 40e8);
+        IERC20(WBTC).approve(address(pool), 40e8);
         pool.supply(WBTC, 40e8, address(this), 0);
 
         // Confirm that after some time, smaller than cooldown, cap cannot be increased
@@ -545,7 +549,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         bytes calldata
     ) external returns (bool) {
         // Supply additional funds to the pool, bring the supply closer to the cap than the gap
-        ERC20(asset).approve(address(pool), 40e8);
+        IERC20(asset).approve(address(pool), 40e8);
         pool.supply(WBTC, 40e8, address(this), 0);
 
         // Confirm previous cap before the update
@@ -558,7 +562,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 840);
 
         // Supply more funds to attempt a second cap increase
-        ERC20(asset).approve(address(pool), 40e8);
+        IERC20(asset).approve(address(pool), 40e8);
         pool.supply(WBTC, 40e8, address(this), 0);
 
         // Confirm the cap cannot be increased twice
@@ -574,7 +578,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         capAutomator.execSupply(WBTC);
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 840);
 
-        ERC20(asset).approve(address(pool), amount);
+        IERC20(asset).approve(address(pool), amount);
 
         return true;
     }
