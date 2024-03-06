@@ -3,7 +3,8 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import { IERC20 } from "openzeppelin-contracts/interfaces/IERC20.sol";
+import { IERC20 }         from "openzeppelin-contracts/interfaces/IERC20.sol";
+import { IERC20Metadata } from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
 
 import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
@@ -13,10 +14,6 @@ import { IPool }                from "aave-v3-core/contracts/interfaces/IPool.so
 import { IScaledBalanceToken }  from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
-
-interface IERC20WitDecimals is IERC20 {
-    function decimals() external view returns (uint8);
-}
 
 contract CapAutomatorIntegrationTestsBase is Test {
 
@@ -57,11 +54,12 @@ contract CapAutomatorIntegrationTestsBase is Test {
 
     function currentATokenSupply(DataTypes.ReserveData memory _reserveData) internal view returns (uint256) {
         return (IScaledBalanceToken(_reserveData.aTokenAddress).scaledTotalSupply() + uint256(_reserveData.accruedToTreasury)).rayMul(_reserveData.liquidityIndex)
-            / 10 ** IERC20WitDecimals(_reserveData.aTokenAddress).decimals();
+            / 10 ** IERC20Metadata(_reserveData.aTokenAddress).decimals();
     }
 
     function currentBorrows(DataTypes.ReserveData memory _reserveData) internal view returns (uint256) {
-        return IERC20(_reserveData.variableDebtTokenAddress).totalSupply() / 10 ** IERC20WitDecimals(_reserveData.variableDebtTokenAddress).decimals();
+        return IERC20(_reserveData.variableDebtTokenAddress).totalSupply()
+            / 10 ** IERC20Metadata(_reserveData.variableDebtTokenAddress).decimals();
     }
 
 }
@@ -289,7 +287,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
     uint256 USERS_STASH = 6_000e8;
 
     function test_E2E_supply_wbtc() public {
-        assertEq(IERC20WitDecimals(WBTC).decimals(), 8);
+        assertEq(IERC20Metadata(WBTC).decimals(), 8);
 
         DataTypes.ReserveData memory wbtcReserveData = pool.getReserveData(WBTC);
 
@@ -385,7 +383,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
     }
 
     function test_E2E_borrow_weth() public {
-        assertEq(IERC20WitDecimals(WETH).decimals(), 18);
+        assertEq(IERC20Metadata(WETH).decimals(), 18);
 
         DataTypes.ReserveData memory wethReserveData = pool.getReserveData(WETH);
 
@@ -485,7 +483,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         DataTypes.ReserveData memory initialReserveData = pool.getReserveData(WBTC);
 
         // Confirm initial state
-        assertEq(IERC20WitDecimals(WBTC).decimals(),                          8);
+        assertEq(IERC20Metadata(WBTC).decimals(),                          8);
         assertEq(currentATokenSupply(initialReserveData),         750);
         assertEq(initialReserveData.configuration.getSupplyCap(), 3_000);
 
