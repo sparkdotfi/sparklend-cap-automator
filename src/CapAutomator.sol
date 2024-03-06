@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import { Ownable } from "openzeppelin-contracts/access/Ownable.sol";
-import { ERC20 }   from "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import { Ownable }        from "openzeppelin-contracts/access/Ownable.sol";
+import { IERC20 }         from "openzeppelin-contracts/interfaces/IERC20.sol";
+import { IERC20Metadata } from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
 
 import { ReserveConfiguration }   from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }              from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
@@ -176,7 +177,7 @@ contract CapAutomator is ICapAutomator, Ownable {
                 IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply()
                 + uint256(reserveData.accruedToTreasury)
             ).rayMul(reserveData.liquidityIndex)
-            / 10 ** ERC20(reserveData.aTokenAddress).decimals();
+            / 10 ** IERC20Metadata(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
             capConfig,
@@ -209,8 +210,8 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         // `stableDebt` is not in use and is always 0
         uint256 currentBorrow =
-            ERC20(reserveData.variableDebtTokenAddress).totalSupply()
-            / 10 ** ERC20(reserveData.variableDebtTokenAddress).decimals();
+            IERC20(reserveData.variableDebtTokenAddress).totalSupply()
+            / 10 ** IERC20Metadata(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
             capConfig,
