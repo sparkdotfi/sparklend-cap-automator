@@ -483,7 +483,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         DataTypes.ReserveData memory initialReserveData = pool.getReserveData(WBTC);
 
         // Confirm initial state
-        assertEq(IERC20Metadata(WBTC).decimals(),                          8);
+        assertEq(IERC20Metadata(WBTC).decimals(),                 8);
         assertEq(currentATokenSupply(initialReserveData),         750);
         assertEq(initialReserveData.configuration.getSupplyCap(), 3_000);
 
