@@ -10,6 +10,3 @@ forge test
 
 ### Deployment
 Deployed on Ethereum Mainnet at `0x2276f52afba7Cf2525fd0a050DF464AC8532d0ef`
-
-***
-*The IP in this repository was assigned to Mars SPC Limited in respect of the MarsOne SP*
