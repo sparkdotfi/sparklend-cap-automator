@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import { Ownable }        from "openzeppelin-contracts/access/Ownable.sol";
+import { AccessControlEnumerable }        from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
 import { IERC20 }         from "openzeppelin-contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
 
-import { ReserveConfiguration }   from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }              from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
-import { WadRayMath }             from "aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
-import { IPoolAddressesProvider } from "aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
-import { IPool }                  from "aave-v3-core/contracts/interfaces/IPool.sol";
-import { IPoolConfigurator }      from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
-import { IScaledBalanceToken }    from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
+import { ReserveConfiguration }   from "aave-v3-core-contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }              from "aave-v3-core-contracts/protocol/libraries/types/DataTypes.sol";
+import { WadRayMath }             from "aave-v3-core-contracts/protocol/libraries/math/WadRayMath.sol";
+import { IPoolAddressesProvider } from "aave-v3-core-contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPool }                  from "aave-v3-core-contracts/interfaces/IPool.sol";
+import { IPoolConfigurator }      from "aave-v3-core-contracts/interfaces/IPoolConfigurator.sol";
+import { IScaledBalanceToken }    from "aave-v3-core-contracts/interfaces/IScaledBalanceToken.sol";
 
 import { ICapAutomator } from "./interfaces/ICapAutomator.sol";
 
-contract CapAutomator is ICapAutomator, Ownable {
+contract CapAutomator is ICapAutomator, AccessControlEnumerable {
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using WadRayMath           for uint256;
@@ -38,13 +38,18 @@ contract CapAutomator is ICapAutomator, Ownable {
     IPoolConfigurator public override immutable poolConfigurator;
     IPool             public override immutable pool;
 
-    constructor(address poolAddressesProvider) Ownable(msg.sender) {
+    bytes32 public constant UPDATE_ROLE = keccak256("CAP_AUTOMATOR_UPDATER");
+
+    constructor(address poolAddressesProvider, address updater) {
+        require(updater != address(0), "CapAutomator/zero-address");
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(UPDATE_ROLE, updater);
         pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPool());
         poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
     }
 
     /******************************************************************************************************************/
-    /*** Owner Functions                                                                                            ***/
+    /*** Admin Functions                                                                                            ***/
     /******************************************************************************************************************/
 
     function setSupplyCapConfig(
@@ -52,7 +57,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external override onlyOwner {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(max > 0,                                          "CapAutomator/zero-cap");
         require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
@@ -79,7 +84,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external override onlyOwner {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(max > 0,                                          "CapAutomator/zero-cap");
         require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
@@ -101,7 +106,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         );
     }
 
-    function removeSupplyCapConfig(address asset) external override onlyOwner {
+    function removeSupplyCapConfig(address asset) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(supplyCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
 
         delete supplyCapConfigs[asset];
@@ -109,7 +114,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         emit RemoveSupplyCapConfig(asset);
     }
 
-    function removeBorrowCapConfig(address asset) external override onlyOwner {
+    function removeBorrowCapConfig(address asset) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(borrowCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
 
         delete borrowCapConfigs[asset];
@@ -118,18 +123,18 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     /******************************************************************************************************************/
-    /*** Public Functions                                                                                           ***/
+    /*** Updater Functions                                                                                          ***/
     /******************************************************************************************************************/
 
-    function execSupply(address asset) external override returns (uint256) {
+    function execSupply(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256) {
         return _updateSupplyCap(asset);
     }
 
-    function execBorrow(address asset) external override returns (uint256) {
+    function execBorrow(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256) {
         return _updateBorrowCap(asset);
     }
 
-    function exec(address asset) external override returns (uint256 newSupplyCap, uint256 newBorrowCap) {
+    function exec(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256 newSupplyCap, uint256 newBorrowCap) {
         newSupplyCap = _updateSupplyCap(asset);
         newBorrowCap = _updateBorrowCap(asset);
     }

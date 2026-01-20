@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { IPool }             from "aave-v3-core/contracts/interfaces/IPool.sol";
-import { IPoolConfigurator } from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
+import { IPool }             from "aave-v3-core-contracts/interfaces/IPool.sol";
+import { IPoolConfigurator } from "aave-v3-core-contracts/interfaces/IPoolConfigurator.sol";
 
 interface ICapAutomator {
 
@@ -107,7 +107,7 @@ interface ICapAutomator {
     );
 
     /**********************************************************************************************/
-    /*** Owner Functions                                                                        ***/
+    /*** Admin Functions                                                                        ***/
     /**********************************************************************************************/
 
     /**
@@ -151,11 +151,11 @@ interface ICapAutomator {
     function removeBorrowCapConfig(address asset) external;
 
     /**********************************************************************************************/
-    /*** Public Functions                                                                       ***/
+    /*** Updater Functions                                                                      ***/
     /**********************************************************************************************/
 
     /**
-     *  @dev    A public function that updates supply cap on market of a given asset.
+     *  @dev    Updates supply cap on market of a given asset. Requires UPDATE_ROLE.
      *          The supply cap is going to be set to the value equal
      *          to the sum of current supply and the supply cap gap.
      *          The cap is only going to be increased if the required cooldown time has passed.
@@ -166,7 +166,7 @@ interface ICapAutomator {
     function execSupply(address asset) external returns (uint256 newSupplyCap);
 
     /**
-     *  @dev    A public function that updates borrow cap on market of a given asset.
+     *  @dev    Updates borrow cap on market of a given asset. Requires UPDATE_ROLE.
      *          The borrow cap is going to be set to the values equal
      *          to the sum of current borrows and the borrow cap gap.
      *          The caps is only going to be increased if the required cooldown time has passed.
@@ -177,7 +177,7 @@ interface ICapAutomator {
     function execBorrow(address asset) external returns (uint256 newBorrowCap);
 
     /**
-     *  @dev    A public function that updates supply and borrow caps on market of a given asset.
+     *  @dev    Updates supply and borrow caps on market of a given asset. Requires UPDATE_ROLE.
      *          The supply and borrow caps are going to be set to, respectively, the values equal
      *          to the sum of current supply and the supply cap gap and the sum of current borrows and the borrow cap gap.
      *          The caps are only going to be increased if the required cooldown time has passed.
