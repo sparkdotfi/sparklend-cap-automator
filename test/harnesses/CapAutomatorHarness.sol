@@ -8,7 +8,11 @@ import { CapAutomator } from "src/CapAutomator.sol";
 
 contract CapAutomatorHarness is CapAutomator {
 
-    constructor(address poolAddressesProvider, address updater) CapAutomator(poolAddressesProvider, updater) {}
+    constructor(
+        address poolAddressesProvider,
+        address admin,
+        address updater
+    ) CapAutomator(poolAddressesProvider, admin, updater) {}
 
     function _calculateNewCapExternal(
         CapConfig memory capConfig,

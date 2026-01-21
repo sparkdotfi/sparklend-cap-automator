@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import { AccessControlEnumerable }        from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
-import { IERC20 }         from "openzeppelin-contracts/interfaces/IERC20.sol";
-import { IERC20Metadata } from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
+import { IERC20 }                         from "openzeppelin-contracts/interfaces/IERC20.sol";
+import { IERC20Metadata }                 from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
 
 import { ReserveConfiguration }   from "aave-v3-core-contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }              from "aave-v3-core-contracts/protocol/libraries/types/DataTypes.sol";
@@ -20,9 +20,9 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using WadRayMath           for uint256;
 
-    /******************************************************************************************************************/
-    /*** Declarations and Constructor                                                                               ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Declarations and Constructor                                                           ***/
+    /**********************************************************************************************/
 
     struct CapConfig {
         uint48 max;              // Full tokens
@@ -40,17 +40,21 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
 
     bytes32 public constant UPDATE_ROLE = keccak256("CAP_AUTOMATOR_UPDATER");
 
-    constructor(address poolAddressesProvider, address updater) {
-        require(updater != address(0), "CapAutomator/zero-address");
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(UPDATE_ROLE, updater);
+    constructor(address poolAddressesProvider, address admin, address updater) {
+        require(admin != address(0) && updater != address(0), "CapAutomator/zero-address");
+
+        _grantRole(DEFAULT_ADMIN_ROLE,  admin);
+        _grantRole(UPDATE_ROLE,         updater);
+        
         pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPool());
-        poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
+        poolConfigurator = IPoolConfigurator(
+            IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator()
+        );
     }
 
-    /******************************************************************************************************************/
-    /*** Admin Functions                                                                                            ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Admin Functions                                                                        ***/
+    /**********************************************************************************************/
 
     function setSupplyCapConfig(
         address asset,
@@ -122,9 +126,9 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         emit RemoveBorrowCapConfig(asset);
     }
 
-    /******************************************************************************************************************/
-    /*** Updater Functions                                                                                          ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Updater Functions                                                                      ***/
+    /**********************************************************************************************/
 
     function execSupply(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256) {
         return _updateSupplyCap(asset);
@@ -134,14 +138,16 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         return _updateBorrowCap(asset);
     }
 
-    function exec(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256 newSupplyCap, uint256 newBorrowCap) {
+    function exec(
+        address asset
+    ) external override onlyRole(UPDATE_ROLE) returns (uint256 newSupplyCap, uint256 newBorrowCap) {
         newSupplyCap = _updateSupplyCap(asset);
         newBorrowCap = _updateBorrowCap(asset);
     }
 
-    /******************************************************************************************************************/
-    /*** Internal Functions                                                                                         ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Internal Functions                                                                     ***/
+    /**********************************************************************************************/
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a <= b ? a : b;
