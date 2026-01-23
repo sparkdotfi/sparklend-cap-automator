@@ -9,4 +9,4 @@
 	url = https://github.com/marsfoundation/aave-v3-core
 [submodule "lib/spark-address-registry"]
 	path = lib/spark-address-registry
-	url = https://github.com/sparkdotfi/spark-address-registry
+	url = https://github.com/lib/spark-address-registry
