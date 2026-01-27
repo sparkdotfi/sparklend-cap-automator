@@ -13,7 +13,8 @@ import { IACLManager }          from "aave-v3-core-contracts/interfaces/IACLMana
 import { IPool }                from "aave-v3-core-contracts/interfaces/IPool.sol";
 import { IScaledBalanceToken }  from "aave-v3-core-contracts/interfaces/IScaledBalanceToken.sol";
 
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { Ethereum }  from "spark-address-registry/Ethereum.sol";
+import { SparkLend } from "spark-address-registry/SparkLend.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
 
@@ -21,13 +22,13 @@ contract CapAutomatorIntegrationTestsBase is Test {
 
     using WadRayMath for uint256;
 
-    address public constant POOL_ADDRESSES_PROVIDER = 0x02C3eA4e34C0cBd694D2adFa2c690EECbC1793eE;
-    address public constant POOL                    = 0xC13e21B648A5Ee794902342038FF3aDAB66BE987;
-    address public constant POOL_CONFIG             = 0x542DBa469bdE58FAeE189ffB60C6b49CE60E0738;
-    address public constant DATA_PROVIDER           = 0xFc21d6d146E6086B8359705C8b28512a983db0cb;
-    address public constant ACL_MANAGER             = 0xdA135Cd78A086025BcdC87B038a1C462032b510C;
+    address public constant POOL_ADDRESSES_PROVIDER = SparkLend.POOL_ADDRESSES_PROVIDER;
+    address public constant POOL                    = SparkLend.POOL;
+    address public constant POOL_CONFIG             = SparkLend.POOL_CONFIGURATOR;
+    address public constant DATA_PROVIDER           = SparkLend.PROTOCOL_DATA_PROVIDER;
+    address public constant ACL_MANAGER             = SparkLend.ACL_MANAGER;
     address public constant SPARK_PROXY             = Ethereum.SPARK_PROXY;
-    address public constant CAP_AUTO_UPDATER        = address(0xdead); // @todo : FIX ME
+    address public constant CAP_AUTO_UPDATER        = SparkLend.CAP_AUTOMATOR;
     address public constant WETH                    = Ethereum.WETH;
     address public constant WBTC                    = Ethereum.WBTC;
 

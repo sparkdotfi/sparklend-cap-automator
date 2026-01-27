@@ -24,9 +24,10 @@ contract CapAutomatorUnitTestBase is Test {
     MockPool                  public mockPool;
     MockPoolConfigurator      public mockPoolConfigurator;
 
-    address   public admin;
-    address[] public updaters;
-    address   public asset;
+    address public admin;
+    address public updater1;
+    address public updater2;
+    address public asset;
 
     CapAutomator public capAutomator;
 
@@ -34,16 +35,17 @@ contract CapAutomatorUnitTestBase is Test {
     bytes32 public UPDATE_ROLE;
 
     function setUp() public {
-        admin   = makeAddr("admin");
-        asset   = makeAddr("asset");
+        admin = makeAddr("admin");
+        asset = makeAddr("asset");
 
-        updaters.push(makeAddr("updater-1"));
-        updaters.push(makeAddr("updater-2"));
+        updater1 = makeAddr("updater-1");
+        updater2 = makeAddr("updater-2");
 
         mockPool                  = new MockPool();
         mockPoolConfigurator      = new MockPoolConfigurator(mockPool);
         mockPoolAddressesProvider = new MockPoolAddressesProvider(
-            address(mockPool), address(mockPoolConfigurator)
+            address(mockPool),
+            address(mockPoolConfigurator)
         );
 
         mockPool.__setSupplyCap(7_000);
@@ -59,14 +61,17 @@ contract CapAutomatorUnitTestBase is Test {
         mockPool.debtToken().__setDecimals(18);
         mockPool.__setTotalDebt(3_900e18);
 
-        vm.startPrank(admin);
-        capAutomator = new CapAutomator(address(mockPoolAddressesProvider), admin, updaters[0]);
+        capAutomator = new CapAutomator(
+            address(mockPoolAddressesProvider),
+            admin,
+            updater1
+        );
 
-        DEFAULT_ADMIN_ROLE  = capAutomator.DEFAULT_ADMIN_ROLE();
-        UPDATE_ROLE         = capAutomator.UPDATE_ROLE();
+        DEFAULT_ADMIN_ROLE = capAutomator.DEFAULT_ADMIN_ROLE();
+        UPDATE_ROLE        = capAutomator.UPDATE_ROLE();
 
-        capAutomator.grantRole(UPDATE_ROLE, updaters[1]);
-        vm.stopPrank();
+        vm.prank(admin);
+        capAutomator.grantRole(UPDATE_ROLE, updater2);
     }
 
 }
@@ -77,19 +82,19 @@ contract ConstructorTests is CapAutomatorUnitTestBase {
         assertEq(address(capAutomator.pool()),             address(mockPool));
         assertEq(address(capAutomator.poolConfigurator()), address(mockPoolConfigurator));
 
-        assertEq(capAutomator.hasRole(DEFAULT_ADMIN_ROLE, admin),   true);
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]),    true);
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[1]),    true);
+        assertEq(capAutomator.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1),     true);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater2),     true);
     }
 
     function test_constructor_zeroAddress() public {
-        vm.expectRevert("CapAutomator/zero-address");
-        new CapAutomator(address(mockPoolAddressesProvider), address(0), updaters[0]);
+        vm.expectRevert("CapAutomator/invalid-admin-address");
+        new CapAutomator(address(mockPoolAddressesProvider), address(0), updater1);
 
-        vm.expectRevert("CapAutomator/zero-address");
+        vm.expectRevert("CapAutomator/invalid-updater-address");
         new CapAutomator(address(mockPoolAddressesProvider), admin, address(0));
 
-        vm.expectRevert("CapAutomator/zero-address");
+        vm.expectRevert("CapAutomator/invalid-admin-address");
         new CapAutomator(address(mockPoolAddressesProvider), address(0), address(0));
     }
 
@@ -104,8 +109,8 @@ contract GrantRoleTests is CapAutomatorUnitTestBase {
         vm.prank(notAdmin);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, 
-                notAdmin, 
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                notAdmin,
                 DEFAULT_ADMIN_ROLE
             )
         );
@@ -124,14 +129,14 @@ contract GrantRoleTests is CapAutomatorUnitTestBase {
     }
 
     function test_grantRole_updateRole_noAuth() public {
-        address notAdmin = makeAddr("notAdmin");
+        address notAdmin   = makeAddr("notAdmin");
         address newUpdater = makeAddr("newUpdater");
 
         vm.prank(notAdmin);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, 
-                notAdmin, 
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                notAdmin,
                 DEFAULT_ADMIN_ROLE
             )
         );
@@ -153,7 +158,7 @@ contract GrantRoleTests is CapAutomatorUnitTestBase {
 
 contract RenounceRoleTests is CapAutomatorUnitTestBase {
 
-    function test_renounceAdminRole_badConfirmation() public {
+    function test_renounceAdminRole_noAuth() public {
         vm.prank(makeAddr("notAdmin"));
         vm.expectRevert(IAccessControl.AccessControlBadConfirmation.selector);
         capAutomator.renounceRole(DEFAULT_ADMIN_ROLE, admin);
@@ -168,19 +173,19 @@ contract RenounceRoleTests is CapAutomatorUnitTestBase {
         assertEq(capAutomator.hasRole(DEFAULT_ADMIN_ROLE, admin), false);
     }
 
-    function test_renounceUpdateRole_badConfirmation() public {
+    function test_renounceUpdateRole_noAuth() public {
         vm.prank(makeAddr("notUpdater"));
-        vm.expectRevert(IAccessControl.AccessControlBadConfirmation.selector);
-        capAutomator.renounceRole(UPDATE_ROLE, updaters[0]);
+        vm.expectRevert(IAccessControl.AccessControlBadConfirmation.selector); 
+        capAutomator.renounceRole(UPDATE_ROLE, updater1);
     }
 
     function test_renounceUpdateRole() public {
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), true);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), true);
 
-        vm.prank(updaters[0]);
-        capAutomator.renounceRole(UPDATE_ROLE, updaters[0]);
+        vm.prank(updater1);
+        capAutomator.renounceRole(UPDATE_ROLE, updater1);
 
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), false);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
     }
 
 }
@@ -194,7 +199,7 @@ contract RevokeRoleTests is CapAutomatorUnitTestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
-                notAdmin, 
+                notAdmin,
                 DEFAULT_ADMIN_ROLE
             )
         );
@@ -222,37 +227,37 @@ contract RevokeRoleTests is CapAutomatorUnitTestBase {
     function test_revokeUpdateRole_noAuth() public {
         address notAdmin = makeAddr("notAdmin");
 
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), true);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), true);
 
         vm.prank(notAdmin);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, 
-                notAdmin, 
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                notAdmin,
                 DEFAULT_ADMIN_ROLE
             )
         );
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
 
         // self revoking role
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, 
-                updaters[0], 
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                updater1,
                 DEFAULT_ADMIN_ROLE
             )
         );
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
     }
 
     function test_revokeUpdateRole() public {
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), true);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), true);
 
         vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
 
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), false);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
     }
 
 }
@@ -283,8 +288,8 @@ contract AccessControlEnumerableRolesTests is CapAutomatorUnitTestBase {
     }
 
     function test_getRoleMember_updateRole() public {
-        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 0), updaters[0]);
-        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 1), updaters[1]);
+        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 0), updater1);
+        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 1), updater2);
     }
 
     function test_getRoleMemberCount_afterGrant() public {
@@ -295,8 +300,8 @@ contract AccessControlEnumerableRolesTests is CapAutomatorUnitTestBase {
         vm.prank(admin);
         capAutomator.grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
 
-        assertEq(capAutomator.getRoleMemberCount(DEFAULT_ADMIN_ROLE),   2);
-        assertEq(capAutomator.getRoleMember(DEFAULT_ADMIN_ROLE, 1),     newAdmin);
+        assertEq(capAutomator.getRoleMemberCount(DEFAULT_ADMIN_ROLE), 2);
+        assertEq(capAutomator.getRoleMember(DEFAULT_ADMIN_ROLE, 1),   newAdmin);
 
         address newUpdater = makeAddr("newUpdater");
 
@@ -305,8 +310,8 @@ contract AccessControlEnumerableRolesTests is CapAutomatorUnitTestBase {
         vm.prank(admin);
         capAutomator.grantRole(UPDATE_ROLE, newUpdater);
 
-        assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE),  3);
-        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 2),    newUpdater);
+        assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE), 3);
+        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 2),   newUpdater);
     }
 
     function test_getRoleMemberCount_afterRevoke() public {
@@ -314,10 +319,10 @@ contract AccessControlEnumerableRolesTests is CapAutomatorUnitTestBase {
         assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE), 2);
 
         vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
 
-        assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE),  1);
-        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 0),    updaters[1]);
+        assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE), 1);
+        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 0),   updater2);
 
         // Test revoking DEFAULT_ADMIN_ROLE
         assertEq(capAutomator.getRoleMemberCount(DEFAULT_ADMIN_ROLE), 1);
@@ -332,11 +337,11 @@ contract AccessControlEnumerableRolesTests is CapAutomatorUnitTestBase {
         // Test renouncing UPDATE_ROLE
         assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE), 2);
 
-        vm.prank(updaters[0]);
-        capAutomator.renounceRole(UPDATE_ROLE, updaters[0]);
+        vm.prank(updater1);
+        capAutomator.renounceRole(UPDATE_ROLE, updater1);
 
-        assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE),  1);
-        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 0),    updaters[1]);
+        assertEq(capAutomator.getRoleMemberCount(UPDATE_ROLE), 1);
+        assertEq(capAutomator.getRoleMember(UPDATE_ROLE, 0),   updater2);
 
         // Test renouncing DEFAULT_ADMIN_ROLE
         assertEq(capAutomator.getRoleMemberCount(DEFAULT_ADMIN_ROLE), 1);
@@ -355,8 +360,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
         vm.prank(makeAddr("notAdmin"));
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, 
-                makeAddr("notAdmin"), 
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                makeAddr("notAdmin"),
                 DEFAULT_ADMIN_ROLE
             )
         );
@@ -560,8 +565,8 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        ( 
-            ,,, 
+        (
+            ,,,
             uint48 lastUpdateBlock,
             uint48 lastIncreaseTime
         ) = capAutomator.supplyCapConfigs(asset);
@@ -571,10 +576,10 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
 
         vm.roll(120_000);
         vm.warp(12 hours);
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         capAutomator.exec(asset);
 
-        ( 
+        (
             ,,, 
             uint48 postExecUpdateBlock,
             uint48 postExecIncreaseTime
@@ -591,7 +596,7 @@ contract SetSupplyCapConfigTests is CapAutomatorUnitTestBase {
             24 hours
         );
 
-        ( 
+        (
             ,,, 
             uint48 postReconfigUpdateBlock,
             uint48 postReconfigIncreaseTime
@@ -814,7 +819,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             12 hours
         );
 
-        ( 
+        (
             ,,, 
             uint48 lastUpdateBlock,
             uint48 lastIncreaseTime
@@ -825,10 +830,11 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
         vm.roll(600);
         vm.warp(12 hours);
-        vm.prank(updaters[0]);
+
+        vm.prank(updater1);
         capAutomator.exec(asset);
 
-        ( 
+        (
             ,,,
             uint48 postExecUpdateBlock,
             uint48 postExecIncreaseTime
@@ -845,7 +851,7 @@ contract SetBorrowCapConfigTests is CapAutomatorUnitTestBase {
             24 hours
         );
 
-        ( 
+        (
             ,,,
             uint48 postReconfigUpdateBlock,
             uint48 postReconfigIncreaseTime
@@ -890,7 +896,7 @@ contract RemoveSupplyCapConfigTests is CapAutomatorUnitTestBase {
         vm.roll(24);
         vm.warp(24 hours);
 
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         capAutomator.execSupply(asset);
 
         (
@@ -959,7 +965,7 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
         vm.roll(36);
         vm.warp(36 hours);
 
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         capAutomator.execBorrow(asset);
 
         (
@@ -1003,14 +1009,14 @@ contract CalculateNewCapTests is Test {
     MockPoolConfigurator      public mockPoolConfigurator;
 
     address public admin;
-    address[] public updaters;
+    address public updater;
 
     CapAutomatorHarness public capAutomator;
 
     function setUp() public {
 
-        admin = makeAddr("admin");
-        updaters.push(makeAddr("updater-1"));
+        admin   = makeAddr("admin");
+        updater = makeAddr("updater");
 
         mockPool                  = new MockPool();
         mockPoolConfigurator      = new MockPoolConfigurator(mockPool);
@@ -1023,7 +1029,7 @@ contract CalculateNewCapTests is Test {
         capAutomator = new CapAutomatorHarness(
             address(mockPoolAddressesProvider),
             admin,
-            updaters[0]
+            updater
         );
         vm.stopPrank();
     }
@@ -1208,17 +1214,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
 
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
-
-        ( 
-            ,,, 
-            uint48 lastUpdateBlockBefore,
-            uint48 lastIncreaseTimeBefore
-        ) = capAutomator.supplyCapConfigs(asset);
-        assertEq(lastUpdateBlockBefore,  0);
-        assertEq(lastIncreaseTimeBefore, 0);
-
-        vm.startPrank(makeAddr("notUpdater"));
+        vm.prank(makeAddr("notUpdater"));
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1227,10 +1223,9 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
             )
         );
         capAutomator.execSupply(asset);
-        vm.stopPrank();
 
         // not even role admin can call execSupply
-        vm.startPrank(admin);
+        vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1239,7 +1234,6 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
             )
         );
         capAutomator.execSupply(asset);
-        vm.stopPrank();
     }
 
     function test_execSupply_after_role_revoke() public {
@@ -1254,43 +1248,14 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
 
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
+        vm.prank(updater1);
+        capAutomator.execSupply(asset);
 
-        ( 
-            ,,,
-            uint48 lastUpdateBlockBefore,
-            uint48 lastIncreaseTimeBefore
-        ) = capAutomator.supplyCapConfigs(asset);
-        assertEq(lastUpdateBlockBefore,  0);
-        assertEq(lastIncreaseTimeBefore, 0);
+        // Revoke UPDATE_ROLE from updater1
 
-        vm.startPrank(updaters[0]);
-        vm.expectCall(
-            address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setSupplyCap,(asset, uint256(7_400))), 
-            1
-        );
-        assertEq(capAutomator.execSupply(asset), 7_400);
-        vm.stopPrank();
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 500 
-        // 6900 + 500 = 7400
-
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
-
-        ( 
-            ,,,
-            uint48 lastUpdateBlockAfter,
-            uint48 lastIncreaseTimeAfter
-        ) = capAutomator.supplyCapConfigs(asset);
-        assertEq(lastUpdateBlockAfter,  900);
-        assertEq(lastIncreaseTimeAfter, 900_000);
-
-        // Revoke UPDATE_ROLE from updaters[0]
-
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), true);
         vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), false);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
 
 
         vm.roll(1000);
@@ -1304,21 +1269,11 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
 
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
-
-        ( 
-            ,,,
-            lastUpdateBlockBefore,
-            lastIncreaseTimeBefore
-        ) = capAutomator.supplyCapConfigs(asset);
-        assertEq(lastUpdateBlockBefore,  900);
-        assertEq(lastIncreaseTimeBefore, 900_000);
-
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
-                updaters[0],
+                updater1,
                 UPDATE_ROLE
             )
         );
@@ -1340,7 +1295,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockBefore,
             uint48 lastIncreaseTimeBefore
@@ -1348,7 +1303,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))),
@@ -1356,12 +1311,12 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         );
         assertEq(capAutomator.execSupply(asset), 7_400);
         vm.stopPrank();
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 500 
-        // 6900 + 500 = 7400
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 500 = 6900 + 500 = 7400
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockAfter,
             uint48 lastIncreaseTimeAfter
@@ -1384,7 +1339,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockBefore,
             uint48 lastIncreaseTimeBefore
@@ -1392,7 +1347,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))),
@@ -1400,12 +1355,12 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         );
         assertEq(capAutomator.execSupply(asset), 7_400);
         vm.stopPrank();
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 500 
-        // 6900 + 500 = 7400
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 500 = 6900 + 500 = 7400
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockAfter,
             uint48 lastIncreaseTimeAfter
@@ -1427,7 +1382,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
 
-        ( 
+        (
             ,,,
             lastUpdateBlockBefore,
             lastIncreaseTimeBefore
@@ -1435,20 +1390,20 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  900);
         assertEq(lastIncreaseTimeBefore, 900_000);
         
-        vm.startPrank(updaters[1]);
+        vm.startPrank(updater2);
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setSupplyCap,(asset, uint256(7_900))),
+            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_900))),
             1
         );
         assertEq(capAutomator.execSupply(asset), 7_900);
         vm.stopPrank();
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 1000
-        // 6900 + 1000 = 7900
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 1000 = 6900 + 1000 = 7900
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_900);
 
-        ( 
+        (
             ,,,
             lastUpdateBlockAfter,
             lastIncreaseTimeAfter
@@ -1478,7 +1433,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockBefore,
             uint48 lastIncreaseTimeBefore
@@ -1486,7 +1441,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
         
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_400))),
@@ -1494,12 +1449,12 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         );
         assertEq(capAutomator.execSupply(asset), 7_400);
         vm.stopPrank();
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 500 
-        // 6900 + 500 = 7400
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 500 = 6900 + 500 = 7400
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_400);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockAfter,
             uint48 lastIncreaseTimeAfter
@@ -1519,7 +1474,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_000))),
@@ -1527,8 +1482,8 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         );
         assertEq(capAutomator.execSupply(asset), 7_000);
         vm.stopPrank();
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 100 
-        // 6900 + 100 = 7000
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 100 = 6900 + 100 = 7000
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
     }
@@ -1544,7 +1499,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(2_000))),
@@ -1573,16 +1528,6 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
             gap:              500,
             increaseCooldown: 0
         });
-
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
-
-        ( 
-            ,,,
-            uint48 lastUpdateBlockBefore,
-            uint48 lastIncreaseTimeBefore
-        ) = capAutomator.borrowCapConfigs(asset);
-        assertEq(lastUpdateBlockBefore,  0);
-        assertEq(lastIncreaseTimeBefore, 0);
 
         vm.startPrank(makeAddr("notUpdater"));
         vm.expectRevert(
@@ -1620,41 +1565,13 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
 
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
+        vm.prank(updater1);
+        capAutomator.execBorrow(asset);
 
-        ( 
-            ,,,
-            uint48 lastUpdateBlockBefore,
-            uint48 lastIncreaseTimeBefore
-        ) = capAutomator.borrowCapConfigs(asset);
-        assertEq(lastUpdateBlockBefore,  0);
-        assertEq(lastIncreaseTimeBefore, 0);
-
-        vm.startPrank(updaters[0]);
-        vm.expectCall(
-            address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))),
-            1
-        );
-        assertEq(capAutomator.execBorrow(asset), 4_400);
-        vm.stopPrank();
-        // totalDebt + gap = 3900 + 500 = 4400
-
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
-
-        ( 
-            ,,,
-            uint48 lastUpdateBlockAfter,
-            uint48 lastIncreaseTimeAfter
-        ) = capAutomator.borrowCapConfigs(asset);
-        assertEq(lastUpdateBlockAfter,  100);
-        assertEq(lastIncreaseTimeAfter, 100_000);
-
-        // Revoke UPDATE_ROLE from updaters[0]
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), true);
+        // Revoke UPDATE_ROLE from updater1
         vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), false);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
 
         vm.roll(200);
         vm.warp(200_000);
@@ -1667,21 +1584,11 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
 
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
-
-        ( 
-            ,,,
-            lastUpdateBlockBefore,
-            lastIncreaseTimeBefore
-        ) = capAutomator.borrowCapConfigs(asset);
-        assertEq(lastUpdateBlockBefore,  100);
-        assertEq(lastIncreaseTimeBefore, 100_000);
-
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
-                updaters[0],
+                updater1,
                 UPDATE_ROLE
             )
         );
@@ -1703,7 +1610,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockBefore,
             uint48 lastIncreaseTimeBefore
@@ -1711,10 +1618,10 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))), 
+            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))),
             1
         );
         assertEq(capAutomator.execBorrow(asset), 4_400);
@@ -1723,7 +1630,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockAfter,
             uint48 lastIncreaseTimeAfter
@@ -1746,7 +1653,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockBefore,
             uint48 lastIncreaseTimeBefore
@@ -1754,7 +1661,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))),
@@ -1766,7 +1673,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockAfter,
             uint48 lastIncreaseTimeAfter
@@ -1787,7 +1694,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
 
-        ( 
+        (
             ,,,
             lastUpdateBlockBefore,
             lastIncreaseTimeBefore
@@ -1795,10 +1702,10 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  100);
         assertEq(lastIncreaseTimeBefore, 100_000);
 
-        vm.startPrank(updaters[1]);
+        vm.startPrank(updater2);
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_900))), 
+            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_900))),
             1
         );
         assertEq(capAutomator.execBorrow(asset), 4_900);
@@ -1807,7 +1714,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_900);
 
-        ( 
+        (
             ,,,
             lastUpdateBlockAfter,
             lastIncreaseTimeAfter
@@ -1833,7 +1740,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockBefore,
             uint48 lastIncreaseTimeBefore
@@ -1841,7 +1748,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         assertEq(lastUpdateBlockBefore,  0);
         assertEq(lastIncreaseTimeBefore, 0);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_400))),
@@ -1853,7 +1760,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_400);
 
-        ( 
+        (
             ,,,
             uint48 lastUpdateBlockAfter,
             uint48 lastIncreaseTimeAfter
@@ -1873,7 +1780,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
 
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_000))), 
@@ -1897,10 +1804,10 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
 
         assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
         
-        vm.startPrank(updaters[0]);
+        vm.startPrank(updater1);
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(1_000))), 
+            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(1_000))),
             1
         );
         assertEq(capAutomator.execBorrow(asset), 1_000);
@@ -1937,10 +1844,7 @@ contract ExecTests is CapAutomatorUnitTestBase {
         });
         vm.stopPrank();
 
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
-
-        vm.startPrank(makeAddr("notUpdater"));
+        vm.prank(makeAddr("notUpdater"));
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1949,10 +1853,9 @@ contract ExecTests is CapAutomatorUnitTestBase {
             )
         );
         capAutomator.exec(asset);
-        vm.stopPrank();
 
         // not even role admin can call exec
-        vm.startPrank(admin);
+        vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1961,7 +1864,6 @@ contract ExecTests is CapAutomatorUnitTestBase {
             )
         );
         capAutomator.exec(asset);
-        vm.stopPrank();
     }
 
     function test_exec_after_role_revoke() public {
@@ -1986,36 +1888,14 @@ contract ExecTests is CapAutomatorUnitTestBase {
         });
         vm.stopPrank();
 
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_000);
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_000);
+        vm.prank(updater1);
+        capAutomator.exec(asset);
 
-        vm.expectCall(
-            address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))),
-            1
-        );
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 400 
-        // 6900 + 400 = 7300
-        vm.expectCall(
-            address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))), 
-            1
-        );
-        // totalDebt + gap = 3900 + 300 = 4200
-        vm.prank(updaters[0]);
-        ( uint256 newSupplyCap, uint256 newBorrowCap ) = capAutomator.exec(asset);
+        // Revoke UPDATE_ROLE from updater1
 
-        assertEq(newSupplyCap, 7_300);
-        assertEq(newBorrowCap, 4_200);
-
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_300);
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_200);
-
-        // Revoke UPDATE_ROLE from updaters[0]
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), true);
         vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updaters[0]), false);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
+        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
 
         vm.roll(1000);
         vm.warp(1000_000);
@@ -2034,15 +1914,12 @@ contract ExecTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
         vm.stopPrank();
-
-        assertEq(mockPool.getReserveData(asset).configuration.getSupplyCap(), 7_300);
-        assertEq(mockPool.getReserveData(asset).configuration.getBorrowCap(), 4_200);
         
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
-                updaters[0],
+                updater1,
                 UPDATE_ROLE
             )
         );
@@ -2076,18 +1953,18 @@ contract ExecTests is CapAutomatorUnitTestBase {
 
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))), 
+            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))),
             1
         );
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 400 
-        // 6900 + 400 = 7300
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 400 = 6900 + 400 = 7300
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))), 
+            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))),
             1
         );
         // totalDebt + gap = 3900 + 300 = 4200
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         ( uint256 newSupplyCap, uint256 newBorrowCap ) = capAutomator.exec(asset);
 
         assertEq(newSupplyCap, 7_300);
@@ -2124,18 +2001,18 @@ contract ExecTests is CapAutomatorUnitTestBase {
 
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))), 
+            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_300))),
             1
         );
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 400 
-        // 6900 + 400 = 7300
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 400 = 6900 + 400 = 7300
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))), 
+            abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_200))),
             1
         );
         // totalDebt + gap = 3900 + 300 = 4200
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         ( uint256 newSupplyCap, uint256 newBorrowCap ) = capAutomator.exec(asset);
 
         assertEq(newSupplyCap, 7_300);
@@ -2167,18 +2044,18 @@ contract ExecTests is CapAutomatorUnitTestBase {
 
         vm.expectCall(
             address(mockPoolConfigurator),
-            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_100))), 
+            abi.encodeCall(IPoolConfigurator.setSupplyCap, (asset, uint256(7_100))),
             1
         );
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 200 
-        // 6900 + 200 = 7100
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 200 = 6900 + 200 = 7100
         vm.expectCall(
             address(mockPoolConfigurator),
             abi.encodeCall(IPoolConfigurator.setBorrowCap, (asset, uint256(4_000))),
             1
         );
         // totalDebt + gap = 3900 + 100 = 4000
-        vm.prank(updaters[1]);
+        vm.prank(updater2);
         ( newSupplyCap, newBorrowCap ) = capAutomator.exec(asset);
 
         assertEq(newSupplyCap, 7_100);
@@ -2249,15 +2126,15 @@ contract EventTests is CapAutomatorUnitTestBase {
     function test_RoleRevoked_updateRole() public {
         vm.prank(admin);
         vm.expectEmit(address(capAutomator));
-        emit RoleRevoked(UPDATE_ROLE, updaters[0], admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updaters[0]);
+        emit RoleRevoked(UPDATE_ROLE, updater1, admin);
+        capAutomator.revokeRole(UPDATE_ROLE, updater1);
     }
 
     function test_RoleRevoked_renounce() public {
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         vm.expectEmit(address(capAutomator));
-        emit RoleRevoked(UPDATE_ROLE, updaters[0], updaters[0]);
-        capAutomator.renounceRole(UPDATE_ROLE, updaters[0]);
+        emit RoleRevoked(UPDATE_ROLE, updater1, updater1);
+        capAutomator.renounceRole(UPDATE_ROLE, updater1);
     }
 
     function test_SetSupplyCapConfig() public {
@@ -2331,11 +2208,11 @@ contract EventTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
 
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         vm.expectEmit(address(capAutomator));
         emit UpdateSupplyCap(asset, 7_000, 7_300);
-        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap = (5700 + 50) * 1.2 + 400 
-        // 6900 + 400 = 7300
+        // (scaledTotalSupply + accruedToTreasury) * liquidityIndex + gap
+        // = (5700 + 50) * 1.2 + 400 = 6900 + 400 = 7300
         capAutomator.execSupply(asset);
     }
 
@@ -2348,7 +2225,7 @@ contract EventTests is CapAutomatorUnitTestBase {
             increaseCooldown: 0
         });
 
-        vm.prank(updaters[0]);
+        vm.prank(updater1);
         vm.expectEmit(address(capAutomator));
         emit UpdateBorrowCap(asset, 4_000, 4_200);
         // totalDebt + gap = 3900 + 300 = 4200

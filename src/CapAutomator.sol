@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import { AccessControlEnumerable }        from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
-import { IERC20 }                         from "openzeppelin-contracts/interfaces/IERC20.sol";
-import { IERC20Metadata }                 from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
+import { AccessControlEnumerable } from "openzeppelin-contracts/access/extensions/AccessControlEnumerable.sol";
+import { IERC20 }                  from "openzeppelin-contracts/interfaces/IERC20.sol";
+import { IERC20Metadata }          from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
 
 import { ReserveConfiguration }   from "aave-v3-core-contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }              from "aave-v3-core-contracts/protocol/libraries/types/DataTypes.sol";
@@ -38,15 +38,18 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
     IPoolConfigurator public override immutable poolConfigurator;
     IPool             public override immutable pool;
 
-    bytes32 public constant UPDATE_ROLE = keccak256("CAP_AUTOMATOR_UPDATER");
+    bytes32 public constant UPDATE_ROLE = keccak256("UPDATE_ROLE");
 
-    constructor(address poolAddressesProvider, address admin, address updater) {
-        require(admin != address(0) && updater != address(0), "CapAutomator/zero-address");
+    constructor(address poolAddressesProvider, address admin, address updater)  {
+        require(admin   != address(0), "CapAutomator/invalid-admin-address");
+        require(updater != address(0), "CapAutomator/invalid-updater-address");
 
-        _grantRole(DEFAULT_ADMIN_ROLE,  admin);
-        _grantRole(UPDATE_ROLE,         updater);
-        
-        pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPool());
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(UPDATE_ROLE,        updater);
+
+        pool = IPool(
+            IPoolAddressesProvider(poolAddressesProvider).getPool()
+        );
         poolConfigurator = IPoolConfigurator(
             IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator()
         );
@@ -61,7 +64,11 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    )
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(max > 0,                                          "CapAutomator/zero-cap");
         require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
@@ -88,7 +95,11 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    )
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(max > 0,                                          "CapAutomator/zero-cap");
         require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
@@ -110,7 +121,11 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         );
     }
 
-    function removeSupplyCapConfig(address asset) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeSupplyCapConfig(address asset)
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(supplyCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
 
         delete supplyCapConfigs[asset];
@@ -118,7 +133,11 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         emit RemoveSupplyCapConfig(asset);
     }
 
-    function removeBorrowCapConfig(address asset) external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeBorrowCapConfig(address asset)
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(borrowCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
 
         delete borrowCapConfigs[asset];
@@ -138,9 +157,12 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         return _updateBorrowCap(asset);
     }
 
-    function exec(
-        address asset
-    ) external override onlyRole(UPDATE_ROLE) returns (uint256 newSupplyCap, uint256 newBorrowCap) {
+    function exec(address asset)
+        external
+        override
+        onlyRole(UPDATE_ROLE)
+        returns (uint256 newSupplyCap, uint256 newBorrowCap)
+    {
         newSupplyCap = _updateSupplyCap(asset);
         newBorrowCap = _updateBorrowCap(asset);
     }
