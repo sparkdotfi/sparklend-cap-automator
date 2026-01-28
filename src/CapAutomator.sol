@@ -50,6 +50,7 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         pool = IPool(
             IPoolAddressesProvider(poolAddressesProvider).getPool()
         );
+
         poolConfigurator = IPoolConfigurator(
             IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator()
         );
@@ -149,11 +150,21 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
     /*** Updater Functions                                                                      ***/
     /**********************************************************************************************/
 
-    function execSupply(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256) {
+    function execSupply(address asset)
+        external
+        override
+        onlyRole(UPDATE_ROLE)
+        returns (uint256) 
+    {
         return _updateSupplyCap(asset);
     }
 
-    function execBorrow(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256) {
+    function execBorrow(address asset)
+        external
+        override
+        onlyRole(UPDATE_ROLE)
+        returns (uint256) 
+    {
         return _updateBorrowCap(asset);
     }
 

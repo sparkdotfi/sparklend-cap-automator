@@ -28,7 +28,7 @@ contract CapAutomatorIntegrationTestsBase is Test {
     address public constant DATA_PROVIDER           = SparkLend.PROTOCOL_DATA_PROVIDER;
     address public constant ACL_MANAGER             = SparkLend.ACL_MANAGER;
     address public constant SPARK_PROXY             = Ethereum.SPARK_PROXY;
-    address public constant CAP_AUTO_UPDATER        = SparkLend.CAP_AUTOMATOR;
+    address public constant CAP_AUTO_UPDATER        = Ethereum.ALM_RELAYER_MULTISIG;
     address public constant WETH                    = Ethereum.WETH;
     address public constant WBTC                    = Ethereum.WBTC;
 
@@ -116,6 +116,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 uint48 lastUpdateBlock,
                 uint48 lastIncreaseTime
             ) = capAutomator.borrowCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  0);
             assertEq(lastIncreaseTime, 0);
 
@@ -127,11 +128,13 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 lastUpdateBlock,
                 lastIncreaseTime
             ) = capAutomator.borrowCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, block.timestamp);
 
             uint256 postIncreaseBorrowCap 
                 = pool.getReserveData(assets[i]).configuration.getBorrowCap();
+
             assertEq(postIncreaseBorrowCap, currentBorrow + newGap);
         }
     }
@@ -164,6 +167,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 uint48 lastUpdateBlock,
                 uint48 lastIncreaseTime
             ) = capAutomator.borrowCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  0);
             assertEq(lastIncreaseTime, 0);
 
@@ -175,11 +179,13 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 lastUpdateBlock,
                 lastIncreaseTime
             ) = capAutomator.borrowCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, 0);
 
             uint256 postDecreaseBorrowCap 
                 = pool.getReserveData(assets[i]).configuration.getBorrowCap();
+
             assertEq(postDecreaseBorrowCap, currentBorrow + newGap);
 
             if (currentBorrow >= 3) {  // "> 0", but also so "/ 3" makes sense
@@ -199,6 +205,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 capAutomator.exec(assets[i]);
 
                 postDecreaseBorrowCap = pool.getReserveData(assets[i]).configuration.getBorrowCap();
+
                 assertEq(postDecreaseBorrowCap, borrowCapBelowState);
             }
         }
@@ -241,6 +248,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 uint48 lastUpdateBlock,
                 uint48 lastIncreaseTime
             ) = capAutomator.supplyCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  0);
             assertEq(lastIncreaseTime, 0);
 
@@ -252,11 +260,13 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 lastUpdateBlock,
                 lastIncreaseTime
             ) = capAutomator.supplyCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, block.timestamp);
 
             uint256 postIncreaseSupplyCap 
                 = pool.getReserveData(assets[i]).configuration.getSupplyCap();
+
             assertEq(postIncreaseSupplyCap, currentSupply + newGap);
         }
     }
@@ -289,6 +299,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 uint48 lastUpdateBlock,
                 uint48 lastIncreaseTime
             ) = capAutomator.supplyCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  0);
             assertEq(lastIncreaseTime, 0);
 
@@ -300,11 +311,13 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 lastUpdateBlock,
                 lastIncreaseTime
             ) = capAutomator.supplyCapConfigs(assets[i]);
+
             assertEq(lastUpdateBlock,  block.number);
             assertEq(lastIncreaseTime, 0);
 
             uint256 postDecreaseSupplyCap 
                 = pool.getReserveData(assets[i]).configuration.getSupplyCap();
+
             assertEq(postDecreaseSupplyCap, currentSupply + newGap);
 
             if (currentSupply >= 3) {  // "> 0", but also so "/ 3" makes sense
@@ -324,6 +337,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
                 capAutomator.exec(assets[i]);
 
                 postDecreaseSupplyCap = pool.getReserveData(assets[i]).configuration.getSupplyCap();
+
                 assertEq(postDecreaseSupplyCap, supplyCapBelowState);
             }
         }
@@ -348,6 +362,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
 
         // Confirm initial WBTC supply
         uint256 initialSupply = currentATokenSupply(wbtcReserveData);
+
         assertEq(initialSupply, 750);
 
         vm.prank(SPARK_PROXY);
@@ -384,12 +399,14 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check the cap is not changing before cooldown passes
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
 
         // Check correct cap increase after cooldown
         skip(24 hours);
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         // initialSupply + suppliedBefore + newlySupplied + gap = 750 + 2_000 + 250 + 500 = 3_500
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_500);
 
@@ -400,6 +417,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check correct cap decrease (without cooldown)
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         // previousSupply - justWithdrawn + gap = 3_000 - 125 + 500 = 3_375
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_375);
 
@@ -409,12 +427,14 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check the cap is not changing in the same block
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_375);
 
         // Check correct cap decrease after block changes
         vm.roll(block.number + 1);
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         // previousSupply - justWithdrawn + gap = 2_875 - 125 + 500 = 3_250
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 3_250);
 
@@ -431,14 +451,13 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
 
-        assertEq(currentATokenSupply(pool.getReserveData(WBTC)), 2_750);
         // initialSupply + suppliedInTest - withdrawnInTest = 750 + 2_000 + 250 - 125 - 125 = 750 + 2_250 - 250 = 2_750
+        assertEq(currentATokenSupply(pool.getReserveData(WBTC)),         2_750);
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 1_000);
 
-        vm.startPrank(user);
+        vm.prank(user);
         vm.expectRevert(bytes("51"));  // SUPPLY_CAP_EXCEEDED
         pool.supply(WBTC, 1, user, 0);
-        vm.stopPrank();
     }
 
     function test_E2E_borrow_weth() public {
@@ -448,10 +467,12 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
 
         // Confirm initial borrow cap
         uint256 initialBorrowCap = wethReserveData.configuration.getBorrowCap();
+
         assertEq(initialBorrowCap, 1_400_000);
 
         // Confirm initial borrows
         uint256 initialBorrows = currentBorrows(wethReserveData);
+
         assertEq(initialBorrows, 126_520);
 
         vm.prank(SPARK_PROXY);
@@ -474,6 +495,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check correct cap decrease
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execBorrow(WETH);
+
         // totalDebt + gap = 126_520 + 100_000 = 226_520
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_520);
 
@@ -483,12 +505,14 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check that another cap change is not possible in the same block
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execBorrow(WETH);
+
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_520);
 
         // Check correct cap increase in the new block
         vm.roll(block.number + 1);
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execBorrow(WETH);
+
         // totalDebt + gap = initialBorrows + newlyBorrowed + gap = 126_520 + 480 + 100_000 = 227_000
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_000);
 
@@ -501,6 +525,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         vm.roll(block.number + 1);
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execBorrow(WETH);
+
         // totalDebt + gap = initialBorrows + previouslyBorrowed - newlyRepaid + gap = 126_520 + 480 - 50 + 100_000 = 226_950
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_950);
 
@@ -511,12 +536,14 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Check the cap is not increasing before cooldown passes
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execBorrow(WETH);
+
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 226_950);
 
         // Check correct cap increase after cooldown
         skip(24 hours);
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execBorrow(WETH);
+
         // totalDebt + gap = initialBorrows + previouslyBorrowed - previouslyRepaid + justBorrowed + debtAccruedIn24h + gap
         // = 126_520 + 480 - 50 + 150 + 10 + 100_000 = 227_000
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 227_110);
@@ -535,14 +562,14 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         capAutomator.execBorrow(WETH);
 
         assertEq(currentBorrows(pool.getReserveData(WETH)), 127_110);
+
         // initialBorrows + borrowedInTest - repaidInTest + debtAccruedIn24h
         // = 126_520 + 480 + 150 - 50 + 10 = 227_000
         assertEq(pool.getReserveData(WETH).configuration.getBorrowCap(), 100_000);
 
-        vm.startPrank(user);
+        vm.prank(user);
         vm.expectRevert(bytes("50"));  // BORROW_CAP_EXCEEDED
         pool.borrow(WETH, 1, 2 /* variable rate mode */, 0, user);
-        vm.stopPrank();
     }
 
     function test_E2E_flashloan() public {
@@ -579,6 +606,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
 
         // Confirm the cap increase even though the supply effectively didn't change
         DataTypes.ReserveData memory postFlashloanReserveData = pool.getReserveData(WBTC);
+
         assertEq(currentATokenSupply(postFlashloanReserveData),         750);
         assertEq(postFlashloanReserveData.configuration.getSupplyCap(), 850);
 
@@ -586,6 +614,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         vm.roll(block.number + 1);
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 800);
 
         vm.roll(block.number + 1);
@@ -598,6 +627,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Confirm that after some time, smaller than cooldown, cap cannot be increased
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 800);
 
         skip(6 hours + 1);
@@ -605,6 +635,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Confirm that after sufficient time passes, cap can be increased again
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 840);
     }
 
@@ -643,6 +674,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // initialSupply + maxPossibleSupplyBeforeCapIncrease + gap = (750 + dust) + (50 - dust) + 50 = 850
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 850);
 
         // Supply more funds to attempt a second cap increase
@@ -653,6 +685,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // initialSupply + totalSuppliedFunds + gap = (750 + dust) + (100 - dust) + 50 = 900
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 850);
 
         // Withdraw funds to pay back the flashloan
@@ -662,6 +695,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // initialSupply + totalSuppliedFunds - withdrawnFunds + gap = (750 + dust) + (100 - dust) - (100 - dust) + 50 = 800
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execSupply(WBTC);
+
         assertEq(pool.getReserveData(WBTC).configuration.getSupplyCap(), 850);
 
         IERC20(asset).approve(address(pool), amount);
