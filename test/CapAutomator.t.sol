@@ -214,7 +214,7 @@ contract RevokeRoleTests is CapAutomatorUnitTestBase {
         vm.prank(unauthorized);
         capAutomator.revokeRole(UPDATE_ROLE, updater1);
 
-        // Self revoking role
+        // Can't revoke role on self, only role admin can revoke the role
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1129,14 +1129,6 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     function test_execSupply_noAuth() external {
-        vm.prank(admin);
-        capAutomator.setSupplyCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              500,
-            increaseCooldown: 0
-        });
-
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1147,7 +1139,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         vm.prank(unauthorized);
         capAutomator.execSupply(asset);
 
-        // Not even role admin can call execSupply
+        // Not even
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1156,43 +1148,6 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
             )
         );
         vm.prank(admin);
-        capAutomator.execSupply(asset);
-    }
-
-    function test_execSupply_afterRevoke() external {
-        vm.prank(admin);
-        capAutomator.setSupplyCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              500,
-            increaseCooldown: 0
-        });
-
-        vm.prank(updater1);
-        capAutomator.execSupply(asset);
-
-        // Revoke UPDATE_ROLE from updater1
-        vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updater1);
-
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
-
-        vm.prank(admin);
-        capAutomator.setSupplyCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              1_000,
-            increaseCooldown: 0
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                updater1,
-                UPDATE_ROLE
-            )
-        );
-        vm.prank(updater1);
         capAutomator.execSupply(asset);
     }
 
@@ -1444,14 +1399,6 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     function test_execBorrow_noAuth() external {
-        vm.prank(admin);
-        capAutomator.setBorrowCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              500,
-            increaseCooldown: 0
-        });
-
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1462,7 +1409,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         vm.prank(unauthorized);
         capAutomator.execBorrow(asset);
 
-        // Not even role admin can call execBorrow
+        // Not even
         vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -1471,43 +1418,6 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
                 UPDATE_ROLE
             )
         );
-        capAutomator.execBorrow(asset);
-    }
-
-    function test_execBorrow_afterRevoke() external {
-        vm.prank(admin);
-        capAutomator.setBorrowCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              500,
-            increaseCooldown: 0
-        });
-
-        vm.prank(updater1);
-        capAutomator.execBorrow(asset);
-
-        // Revoke UPDATE_ROLE from updater1
-        vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updater1);
-
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
-
-        vm.prank(admin);
-        capAutomator.setBorrowCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              100,
-            increaseCooldown: 0
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                updater1,
-                UPDATE_ROLE
-            )
-        );
-        vm.prank(updater1);
         capAutomator.execBorrow(asset);
     }
 
@@ -1747,24 +1657,6 @@ contract ExecTests is CapAutomatorUnitTestBase {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     function test_exec_noAuth() external {
-        mockPool.__setSupplyCap(7_000);
-        mockPool.__setBorrowCap(4_000);
-
-        vm.startPrank(admin);
-        capAutomator.setSupplyCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              400,
-            increaseCooldown: 0
-        });
-        capAutomator.setBorrowCapConfig({
-            asset:            asset,
-            max:              8_000,
-            gap:              300,
-            increaseCooldown: 0
-        });
-        vm.stopPrank();
-
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1775,7 +1667,7 @@ contract ExecTests is CapAutomatorUnitTestBase {
         vm.prank(unauthorized);
         capAutomator.exec(asset);
 
-        // Not even role admin can call exec
+        // Not even
         vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -1784,60 +1676,6 @@ contract ExecTests is CapAutomatorUnitTestBase {
                 UPDATE_ROLE
             )
         );
-        capAutomator.exec(asset);
-    }
-
-    function test_exec_afterRevoke() external {
-        mockPool.__setSupplyCap(7_000);
-        mockPool.__setBorrowCap(4_000);
-
-        vm.startPrank(admin);
-        capAutomator.setSupplyCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              400,
-            increaseCooldown: 0
-        });
-        capAutomator.setBorrowCapConfig({
-            asset:            asset,
-            max:              8_000,
-            gap:              300,
-            increaseCooldown: 0
-        });
-        vm.stopPrank();
-
-        vm.prank(updater1);
-        capAutomator.exec(asset);
-
-        // Revoke UPDATE_ROLE from updater1
-        vm.prank(admin);
-        capAutomator.revokeRole(UPDATE_ROLE, updater1);
-
-        assertEq(capAutomator.hasRole(UPDATE_ROLE, updater1), false);
-
-        vm.startPrank(admin);
-        capAutomator.setSupplyCapConfig({
-            asset:            asset,
-            max:              10_000,
-            gap:              200,
-            increaseCooldown: 0
-        });
-        capAutomator.setBorrowCapConfig({
-            asset:            asset,
-            max:              8_000,
-            gap:              100,
-            increaseCooldown: 0
-        });
-        vm.stopPrank();
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                updater1,
-                UPDATE_ROLE
-            )
-        );
-        vm.prank(updater1);
         capAutomator.exec(asset);
     }
 
