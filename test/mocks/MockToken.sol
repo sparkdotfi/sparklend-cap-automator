@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
 contract MockToken {
 
@@ -15,16 +15,16 @@ contract MockToken {
     /*** Mock Functions                                                                         ***/
     /**********************************************************************************************/
 
-    function __setTotalSupply(uint256 _totalSupply) public {
-        totalSupply = _totalSupply;
+    function __setTotalSupply(uint256 totalSupply_) public {
+        totalSupply = totalSupply_;
     }
 
-    function __setScaledTotalSupply(uint256 _scaledTotalSupply) public {
-        scaledTotalSupply = _scaledTotalSupply;
+    function __setScaledTotalSupply(uint256 scaledTotalSupply_) public {
+        scaledTotalSupply = scaledTotalSupply_;
     }
 
-    function __setDecimals(uint256 _decimals) public {
-        decimals = _decimals;
+    function __setDecimals(uint256 decimals_) public {
+        decimals = decimals_;
     }
 
 }
