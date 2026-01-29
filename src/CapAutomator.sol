@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
-import { Ownable }        from "openzeppelin-contracts/access/Ownable.sol";
-import { IERC20 }         from "openzeppelin-contracts/interfaces/IERC20.sol";
-import { IERC20Metadata } from "openzeppelin-contracts/interfaces/IERC20Metadata.sol";
+import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-import { ReserveConfiguration }   from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }              from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
-import { WadRayMath }             from "aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
-import { IPoolAddressesProvider } from "aave-v3-core/contracts/interfaces/IPoolAddressesProvider.sol";
-import { IPool }                  from "aave-v3-core/contracts/interfaces/IPool.sol";
-import { IPoolConfigurator }      from "aave-v3-core/contracts/interfaces/IPoolConfigurator.sol";
-import { IScaledBalanceToken }    from "aave-v3-core/contracts/interfaces/IScaledBalanceToken.sol";
+import { ReserveConfiguration } from "../lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }            from "../lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { WadRayMath }           from "../lib/aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
 
 import { ICapAutomator } from "./interfaces/ICapAutomator.sol";
+import { IERC20Like }    from "./interfaces/Common.sol";
 
-contract CapAutomator is ICapAutomator, Ownable {
+import {
+    IPoolAddressesProviderLike,
+    IPoolConfiguratorLike,
+    IPoolLike,
+    IScaledBalanceTokenLike
+} from "./interfaces/IAAVEV3.sol";
+
+contract CapAutomator is ICapAutomator, AccessControlEnumerable {
 
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
     using WadRayMath           for uint256;
 
-    /******************************************************************************************************************/
-    /*** Declarations and Constructor                                                                               ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Declarations and Constructor                                                           ***/
+    /**********************************************************************************************/
 
     struct CapConfig {
         uint48 max;              // Full tokens
@@ -32,27 +34,39 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint48 lastIncreaseTime; // Seconds
     }
 
-    mapping(address => CapConfig) public override supplyCapConfigs;
-    mapping(address => CapConfig) public override borrowCapConfigs;
+    bytes32 public constant UPDATE_ROLE = keccak256("UPDATE_ROLE");
 
-    IPoolConfigurator public override immutable poolConfigurator;
-    IPool             public override immutable pool;
+    address public immutable poolConfigurator;
+    address public immutable pool;
 
-    constructor(address poolAddressesProvider) Ownable(msg.sender) {
-        pool             = IPool(IPoolAddressesProvider(poolAddressesProvider).getPool());
-        poolConfigurator = IPoolConfigurator(IPoolAddressesProvider(poolAddressesProvider).getPoolConfigurator());
+    mapping(address => CapConfig) public supplyCapConfigs;
+    mapping(address => CapConfig) public borrowCapConfigs;
+
+    constructor(address poolAddressesProvider, address admin, address updater)  {
+        require(admin   != address(0), "CapAutomator/invalid-admin-address");
+        require(updater != address(0), "CapAutomator/invalid-updater-address");
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(UPDATE_ROLE,        updater);
+
+        pool             = IPoolAddressesProviderLike(poolAddressesProvider).getPool();
+        poolConfigurator = IPoolAddressesProviderLike(poolAddressesProvider).getPoolConfigurator();
     }
 
-    /******************************************************************************************************************/
-    /*** Owner Functions                                                                                            ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Admin Functions                                                                        ***/
+    /**********************************************************************************************/
 
     function setSupplyCapConfig(
         address asset,
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external override onlyOwner {
+    )
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(max > 0,                                          "CapAutomator/zero-cap");
         require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_SUPPLY_CAP, "CapAutomator/invalid-cap");
@@ -66,12 +80,7 @@ contract CapAutomator is ICapAutomator, Ownable {
             supplyCapConfigs[asset].lastIncreaseTime
         );
 
-        emit SetSupplyCapConfig(
-            asset,
-            max,
-            gap,
-            increaseCooldown
-        );
+        emit SetSupplyCapConfig(asset, max, gap, increaseCooldown);
     }
 
     function setBorrowCapConfig(
@@ -79,7 +88,11 @@ contract CapAutomator is ICapAutomator, Ownable {
         uint256 max,
         uint256 gap,
         uint256 increaseCooldown
-    ) external override onlyOwner {
+    )
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(max > 0,                                          "CapAutomator/zero-cap");
         require(gap > 0,                                          "CapAutomator/zero-gap");
         require(max <= ReserveConfiguration.MAX_VALID_BORROW_CAP, "CapAutomator/invalid-cap");
@@ -93,15 +106,10 @@ contract CapAutomator is ICapAutomator, Ownable {
             borrowCapConfigs[asset].lastIncreaseTime
         );
 
-        emit SetBorrowCapConfig(
-            asset,
-            max,
-            gap,
-            increaseCooldown
-        );
+        emit SetBorrowCapConfig(asset, max, gap, increaseCooldown);
     }
 
-    function removeSupplyCapConfig(address asset) external override onlyOwner {
+    function removeSupplyCapConfig(address asset) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(supplyCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
 
         delete supplyCapConfigs[asset];
@@ -109,7 +117,7 @@ contract CapAutomator is ICapAutomator, Ownable {
         emit RemoveSupplyCapConfig(asset);
     }
 
-    function removeBorrowCapConfig(address asset) external override onlyOwner {
+    function removeBorrowCapConfig(address asset) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         require(borrowCapConfigs[asset].max > 0, "CapAutomator/nonexistent-config");
 
         delete borrowCapConfigs[asset];
@@ -117,26 +125,31 @@ contract CapAutomator is ICapAutomator, Ownable {
         emit RemoveBorrowCapConfig(asset);
     }
 
-    /******************************************************************************************************************/
-    /*** Public Functions                                                                                           ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Updater Functions                                                                      ***/
+    /**********************************************************************************************/
 
-    function execSupply(address asset) external override returns (uint256) {
+    function execSupply(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256) {
         return _updateSupplyCap(asset);
     }
 
-    function execBorrow(address asset) external override returns (uint256) {
+    function execBorrow(address asset) external override onlyRole(UPDATE_ROLE) returns (uint256) {
         return _updateBorrowCap(asset);
     }
 
-    function exec(address asset) external override returns (uint256 newSupplyCap, uint256 newBorrowCap) {
+    function exec(address asset)
+        external
+        override
+        onlyRole(UPDATE_ROLE)
+        returns (uint256 newSupplyCap, uint256 newBorrowCap)
+    {
         newSupplyCap = _updateSupplyCap(asset);
         newBorrowCap = _updateBorrowCap(asset);
     }
 
-    /******************************************************************************************************************/
-    /*** Internal Functions                                                                                         ***/
-    /******************************************************************************************************************/
+    /**********************************************************************************************/
+    /*** Internal Functions                                                                     ***/
+    /**********************************************************************************************/
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a <= b ? a : b;
@@ -168,16 +181,16 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateSupplyCap(address asset) internal returns (uint256) {
-        DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
+        DataTypes.ReserveData memory reserveData = IPoolLike(pool).getReserveData(asset);
         CapConfig             memory capConfig   = supplyCapConfigs[asset];
 
         uint256 currentSupplyCap = reserveData.configuration.getSupplyCap();
 
         uint256 currentSupply = (
-                IScaledBalanceToken(reserveData.aTokenAddress).scaledTotalSupply()
+                IScaledBalanceTokenLike(reserveData.aTokenAddress).scaledTotalSupply()
                 + uint256(reserveData.accruedToTreasury)
             ).rayMul(reserveData.liquidityIndex)
-            / 10 ** IERC20Metadata(reserveData.aTokenAddress).decimals();
+            / 10 ** IERC20Like(reserveData.aTokenAddress).decimals();
 
         uint256 newSupplyCap = _calculateNewCap(
             capConfig,
@@ -195,7 +208,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         supplyCapConfigs[asset] = capConfig;
 
-        poolConfigurator.setSupplyCap(asset, newSupplyCap);
+        IPoolConfiguratorLike(poolConfigurator).setSupplyCap(asset, newSupplyCap);
 
         emit UpdateSupplyCap(asset, currentSupplyCap, newSupplyCap);
 
@@ -203,15 +216,15 @@ contract CapAutomator is ICapAutomator, Ownable {
     }
 
     function _updateBorrowCap(address asset) internal returns (uint256) {
-        DataTypes.ReserveData memory reserveData = pool.getReserveData(asset);
+        DataTypes.ReserveData memory reserveData = IPoolLike(pool).getReserveData(asset);
         CapConfig             memory capConfig   = borrowCapConfigs[asset];
 
         uint256 currentBorrowCap = reserveData.configuration.getBorrowCap();
 
         // `stableDebt` is not in use and is always 0
         uint256 currentBorrow =
-            IERC20(reserveData.variableDebtTokenAddress).totalSupply()
-            / 10 ** IERC20Metadata(reserveData.variableDebtTokenAddress).decimals();
+            IERC20Like(reserveData.variableDebtTokenAddress).totalSupply()
+            / 10 ** IERC20Like(reserveData.variableDebtTokenAddress).decimals();
 
         uint256 newBorrowCap = _calculateNewCap(
             capConfig,
@@ -229,7 +242,7 @@ contract CapAutomator is ICapAutomator, Ownable {
 
         borrowCapConfigs[asset] = capConfig;
 
-        poolConfigurator.setBorrowCap(asset, newBorrowCap);
+        IPoolConfiguratorLike(poolConfigurator).setBorrowCap(asset, newBorrowCap);
 
         emit UpdateBorrowCap(asset, currentBorrowCap, newBorrowCap);
 

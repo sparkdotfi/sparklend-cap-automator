@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
 import { MockPool } from "./MockPool.sol";
 
@@ -9,10 +9,10 @@ contract MockPoolConfigurator {
     /*** Declarations and Constructor                                                           ***/
     /**********************************************************************************************/
 
-    MockPool public mockPool;
+    address public mockPool;
 
-    constructor(MockPool _mockPool) {
-        mockPool = _mockPool;
+    constructor(address mockPool_) {
+        mockPool = mockPool_;
     }
 
     /**********************************************************************************************/
@@ -20,11 +20,11 @@ contract MockPoolConfigurator {
     /**********************************************************************************************/
 
     function setSupplyCap(address, uint256 supplyCap) external {
-        mockPool.__setSupplyCap(supplyCap);
+        MockPool(mockPool).__setSupplyCap(supplyCap);
     }
 
     function setBorrowCap(address, uint256 borrowCap) external {
-        mockPool.__setBorrowCap(borrowCap);
+        MockPool(mockPool).__setBorrowCap(borrowCap);
     }
 
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
 contract MockPoolAddressesProvider {
 
@@ -10,9 +10,9 @@ contract MockPoolAddressesProvider {
     address public pool;
     address public poolConfigurator;
 
-    constructor(address _pool, address _poolConfigurator) {
-        pool             = _pool;
-        poolConfigurator = _poolConfigurator;
+    constructor(address pool_, address poolConfigurator_) {
+        pool             = pool_;
+        poolConfigurator = poolConfigurator_;
     }
 
     /**********************************************************************************************/

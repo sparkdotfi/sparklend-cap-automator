@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
-import { ReserveConfiguration } from "aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
-import { DataTypes }            from "aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
+import { ReserveConfiguration } from "../../lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { DataTypes }            from "../../lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
 import { MockToken } from "./MockToken.sol";
 
@@ -14,8 +14,8 @@ contract MockPool {
     /*** Declarations and Constructor                                                           ***/
     /**********************************************************************************************/
 
-    MockToken public aToken;
-    MockToken public debtToken;
+    address public aToken;
+    address public debtToken;
 
     uint256 public liquidityIndex;
     uint256 public accruedToTreasury;
@@ -24,8 +24,8 @@ contract MockPool {
     uint256 public borrowCap;
 
     constructor() {
-        aToken    = new MockToken();
-        debtToken = new MockToken();
+        aToken    = address(new MockToken());
+        debtToken = address(new MockToken());
     }
 
     /**********************************************************************************************/
@@ -48,9 +48,9 @@ contract MockPool {
             currentStableBorrowRate:     uint128(0),
             lastUpdateTimestamp:         uint40(0),
             id:                          uint16(0),
-            aTokenAddress:               address(aToken),
+            aTokenAddress:               aToken,
             stableDebtTokenAddress:      address(0),
-            variableDebtTokenAddress:    address(debtToken),
+            variableDebtTokenAddress:    debtToken,
             interestRateStrategyAddress: address(0),
             accruedToTreasury:           uint128(accruedToTreasury),
             unbacked:                    uint128(0),
@@ -62,28 +62,28 @@ contract MockPool {
     /*** Mock Functions                                                                         ***/
     /**********************************************************************************************/
 
-    function __setSupplyCap(uint256 _supplyCap) external {
-        supplyCap = _supplyCap;
+    function __setSupplyCap(uint256 supplyCap_) external {
+        supplyCap = supplyCap_;
     }
 
-    function __setBorrowCap(uint256 _borrowCap) external {
-        borrowCap = _borrowCap;
+    function __setBorrowCap(uint256 borrowCap_) external {
+        borrowCap = borrowCap_;
     }
 
-    function __setATokenScaledTotalSupply(uint256 _aTokenScaledTotalSupply) external {
-        aToken.__setScaledTotalSupply(_aTokenScaledTotalSupply);
+    function __setATokenScaledTotalSupply(uint256 aTokenScaledTotalSupply_) external {
+        MockToken(aToken).__setScaledTotalSupply(aTokenScaledTotalSupply_);
     }
 
-    function __setTotalDebt(uint256 _totalDebt) external {
-        debtToken.__setTotalSupply(_totalDebt);
+    function __setTotalDebt(uint256 totalDebt_) external {
+        MockToken(debtToken).__setTotalSupply(totalDebt_);
     }
 
-    function __setLiquidityIndex(uint256 _liquidityIndex) external {
-        liquidityIndex = _liquidityIndex;
+    function __setLiquidityIndex(uint256 liquidityIndex_) external {
+        liquidityIndex = liquidityIndex_;
     }
 
-    function __setAccruedToTreasury(uint256 _accruedToTreasury) external {
-        accruedToTreasury = _accruedToTreasury;
+    function __setAccruedToTreasury(uint256 accruedToTreasury_) external {
+        accruedToTreasury = accruedToTreasury_;
     }
 
 }
