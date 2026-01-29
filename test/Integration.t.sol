@@ -572,8 +572,8 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         DataTypes.ReserveData memory initialReserveData = pool.getReserveData(WBTC);
 
         // Confirm initial state
-        assertEq(IERC20Like(WBTC).decimals(),                 8);
-        assertEq(_currentATokenSupply(initialReserveData),         750);
+        assertEq(IERC20Like(WBTC).decimals(),                     8);
+        assertEq(_currentATokenSupply(initialReserveData),        750);
         assertEq(initialReserveData.configuration.getSupplyCap(), 3_000);
 
         vm.prank(SPARK_PROXY);
@@ -604,7 +604,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         // Confirm the cap increase even though the supply effectively didn't change
         DataTypes.ReserveData memory postFlashloanReserveData = pool.getReserveData(WBTC);
 
-        assertEq(_currentATokenSupply(postFlashloanReserveData),         750);
+        assertEq(_currentATokenSupply(postFlashloanReserveData),        750);
         assertEq(postFlashloanReserveData.configuration.getSupplyCap(), 850);
 
         // Confirm that in the next block, before increase cooldown passes, cap can be decreased
