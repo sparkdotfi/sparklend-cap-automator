@@ -1139,7 +1139,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         vm.prank(unauthorized);
         capAutomator.execSupply(asset);
 
-        // Not even
+        // Not even role admin can call execSupply
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
@@ -1409,7 +1409,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         vm.prank(unauthorized);
         capAutomator.execBorrow(asset);
 
-        // Not even
+        // Not even role admin can call execBorrow
         vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -1667,7 +1667,7 @@ contract ExecTests is CapAutomatorUnitTestBase {
         vm.prank(unauthorized);
         capAutomator.exec(asset);
 
-        // Not even
+        // Not even role admin can call exec
         vm.prank(admin);
         vm.expectRevert(
             abi.encodeWithSelector(
