@@ -23,6 +23,8 @@ contract MockPool {
     uint256 public supplyCap;
     uint256 public borrowCap;
 
+    uint256 public decimals;
+
     constructor() {
         aToken    = address(new MockToken());
         debtToken = address(new MockToken());
@@ -38,6 +40,8 @@ contract MockPool {
 
         configuration.setBorrowCap(borrowCap);
         configuration.setSupplyCap(supplyCap);
+
+        configuration.setDecimals(decimals);
 
         return DataTypes.ReserveData({
             configuration:               configuration,
@@ -84,6 +88,10 @@ contract MockPool {
 
     function __setAccruedToTreasury(uint256 accruedToTreasury_) external {
         accruedToTreasury = accruedToTreasury_;
+    }
+
+    function __setDecimals(uint256 decimals_) external {
+        decimals = decimals_;
     }
 
 }

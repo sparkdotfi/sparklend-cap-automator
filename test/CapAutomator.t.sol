@@ -44,15 +44,13 @@ contract CapAutomatorUnitTestBase is Test {
 
         mockPool.__setSupplyCap(7_000);
 
-        MockToken(mockPool.aToken()).__setDecimals(18);
+        mockPool.__setDecimals(18);
         mockPool.__setATokenScaledTotalSupply(5_700e18);
         mockPool.__setAccruedToTreasury(50e18);
         mockPool.__setLiquidityIndex(1.2e27);
         // (aToken. scaledTotalSupply + accruedToTreasury) * liquidityIndex = 6_900e18
 
         mockPool.__setBorrowCap(4_000);
-
-        MockToken(mockPool.debtToken()).__setDecimals(18);
         mockPool.__setTotalDebt(3_900e18);
 
         capAutomator = new CapAutomator(address(mockPoolAddressesProvider), admin, updater1);
@@ -1294,7 +1292,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         vm.roll(300);
         vm.warp(300_000 seconds);
 
-        MockToken(mockPool.aToken()).__setDecimals(6);
+        mockPool.__setDecimals(6);
         mockPool.__setATokenScaledTotalSupply(4_500e6);
         mockPool.__setAccruedToTreasury(100e6);
         mockPool.__setLiquidityIndex(1.5e27);
@@ -1558,7 +1556,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         vm.roll(200);
         vm.warp(200_000 seconds);
 
-        MockToken(mockPool.debtToken()).__setDecimals(6);
+        mockPool.__setDecimals(6);
         mockPool.__setTotalDebt(3_900e6);
 
         vm.prank(admin);
