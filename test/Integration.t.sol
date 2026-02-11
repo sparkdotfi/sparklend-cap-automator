@@ -1,76 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-import { Test } from "../lib/forge-std/src/Test.sol";
+import { CapAutomatorIntegrationTestsBase } from "./TestBase.t.sol";
 
 import { ReserveConfiguration } from "../lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "../lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 import { WadRayMath }           from "../lib/aave-v3-core/contracts/protocol/libraries/math/WadRayMath.sol";
 
-import { Ethereum }  from "../lib/spark-address-registry/src/Ethereum.sol";
-import { SparkLend } from "../lib/spark-address-registry/src/SparkLend.sol";
-
-import { IACLManagerLike, IPoolLike, IScaledBalanceTokenLike } from "./interfaces/IAAVEV3.sol";
-
-import { IERC20Like } from "./interfaces/Common.sol";
-
-import { CapAutomator } from "../src/CapAutomator.sol";
-
-contract CapAutomatorIntegrationTestsBase is Test {
-
-    using WadRayMath for uint256;
-
-    address internal constant POOL_ADDRESSES_PROVIDER = SparkLend.POOL_ADDRESSES_PROVIDER;
-    address internal constant POOL                    = SparkLend.POOL;
-    address internal constant POOL_CONFIG             = SparkLend.POOL_CONFIGURATOR;
-    address internal constant DATA_PROVIDER           = SparkLend.PROTOCOL_DATA_PROVIDER;
-    address internal constant ACL_MANAGER             = SparkLend.ACL_MANAGER;
-    address internal constant SPARK_PROXY             = Ethereum.SPARK_PROXY;
-    address internal constant CAP_AUTO_UPDATER        = Ethereum.ALM_RELAYER_MULTISIG;
-    address internal constant WETH                    = Ethereum.WETH;
-    address internal constant WBTC                    = Ethereum.WBTC;
-
-    address internal user = makeAddr("user");
-
-    address[] internal assets;
-
-    CapAutomator internal capAutomator;
-
-    IACLManagerLike internal aclManager = IACLManagerLike(ACL_MANAGER);
-    IPoolLike       internal pool       = IPoolLike(POOL);
-
-    function setUp() public {
-        vm.createSelectFork(getChain("mainnet").rpcUrl, 18721430);
-
-        vm.prank(SPARK_PROXY);
-        capAutomator = new CapAutomator(POOL_ADDRESSES_PROVIDER, SPARK_PROXY, CAP_AUTO_UPDATER);
-
-        vm.prank(SPARK_PROXY);
-        aclManager.addRiskAdmin(address(capAutomator));
-
-        assets = pool.getReservesList();
-    }
-
-    function _currentATokenSupply(
-        DataTypes.ReserveData memory _reserveData
-    ) internal view returns (uint256) {
-        return
-            (
-                IScaledBalanceTokenLike(_reserveData.aTokenAddress).scaledTotalSupply()
-                + _reserveData.accruedToTreasury
-            ).rayMul(_reserveData.liquidityIndex)
-            / 10 ** IERC20Like(_reserveData.aTokenAddress).decimals();
-    }
-
-    function currentBorrows(
-        DataTypes.ReserveData memory _reserveData
-    ) internal view returns (uint256) {
-        return
-            IERC20Like(_reserveData.variableDebtTokenAddress).totalSupply()
-            / 10 ** IERC20Like(_reserveData.variableDebtTokenAddress).decimals();
-    }
-
-}
+import { IERC20Like }              from "./interfaces/Common.sol";
+import { IScaledBalanceTokenLike } from "./interfaces/IAAVEV3.sol";
 
 contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
 
