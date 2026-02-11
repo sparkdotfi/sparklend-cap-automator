@@ -190,7 +190,7 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
                 IScaledBalanceTokenLike(reserveData.aTokenAddress).scaledTotalSupply()
                 + uint256(reserveData.accruedToTreasury)
             ).rayMul(reserveData.liquidityIndex)
-            / 10 ** IERC20Like(reserveData.aTokenAddress).decimals();
+            / 10 ** reserveData.configuration.getDecimals();
 
         uint256 newSupplyCap = _calculateNewCap(
             capConfig,
@@ -224,7 +224,7 @@ contract CapAutomator is ICapAutomator, AccessControlEnumerable {
         // `stableDebt` is not in use and is always 0
         uint256 currentBorrow =
             IERC20Like(reserveData.variableDebtTokenAddress).totalSupply()
-            / 10 ** IERC20Like(reserveData.variableDebtTokenAddress).decimals();
+            / 10 ** reserveData.configuration.getDecimals();
 
         uint256 newBorrowCap = _calculateNewCap(
             capConfig,
