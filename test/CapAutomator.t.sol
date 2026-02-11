@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.22;
 
-import { Test } from "../lib/forge-std/src/Test.sol";
+import { CapAutomatorUnitTestBase } from "./TestBase.t.sol";
 
 import { IAccessControl } from "../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
@@ -9,60 +9,9 @@ import { IPoolConfigurator }    from "../lib/aave-v3-core/contracts/interfaces/I
 import { ReserveConfiguration } from "../lib/aave-v3-core/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes }            from "../lib/aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol";
 
-import { MockPool }                  from "./mocks/MockPool.sol";
-import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
-import { MockPoolConfigurator }      from "./mocks/MockPoolConfigurator.sol";
-import { MockToken }                 from "./mocks/MockToken.sol";
-
-import { CapAutomatorHarness } from "./harnesses/CapAutomatorHarness.sol";
-
 import { ICapAutomator } from "../src/interfaces/ICapAutomator.sol";
 
 import { CapAutomator } from "../src/CapAutomator.sol";
-
-contract CapAutomatorUnitTestBase is Test {
-
-    MockPoolAddressesProvider internal mockPoolAddressesProvider;
-    MockPool                  internal mockPool;
-    MockPoolConfigurator      internal mockPoolConfigurator;
-
-    address internal admin        = makeAddr("admin");
-    address internal asset        = makeAddr("asset");
-    address internal unauthorized = makeAddr("unauthorized");
-    address internal updater1     = makeAddr("updater1");
-    address internal updater2     = makeAddr("updater2");
-
-    CapAutomator internal capAutomator;
-
-    bytes32 internal DEFAULT_ADMIN_ROLE;
-    bytes32 internal UPDATE_ROLE;
-
-    function setUp() public {
-        mockPool                  = new MockPool();
-        mockPoolConfigurator      = new MockPoolConfigurator(address(mockPool));
-        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPoolConfigurator));
-
-        mockPool.__setSupplyCap(7_000);
-
-        mockPool.__setDecimals(18);
-        mockPool.__setATokenScaledTotalSupply(5_700e18);
-        mockPool.__setAccruedToTreasury(50e18);
-        mockPool.__setLiquidityIndex(1.2e27);
-        // (aToken. scaledTotalSupply + accruedToTreasury) * liquidityIndex = 6_900e18
-
-        mockPool.__setBorrowCap(4_000);
-        mockPool.__setTotalDebt(3_900e18);
-
-        capAutomator = new CapAutomator(address(mockPoolAddressesProvider), admin, updater1);
-
-        DEFAULT_ADMIN_ROLE = capAutomator.DEFAULT_ADMIN_ROLE();
-        UPDATE_ROLE        = capAutomator.UPDATE_ROLE();
-
-        vm.prank(admin);
-        capAutomator.grantRole(UPDATE_ROLE, updater2);
-    }
-
-}
 
 contract ConstructorTests is CapAutomatorUnitTestBase {
 
@@ -993,28 +942,10 @@ contract RemoveBorrowCapConfigTests is CapAutomatorUnitTestBase {
 
 }
 
-contract CalculateNewCapTests is Test {
-
-    MockPoolAddressesProvider internal mockPoolAddressesProvider;
-    MockPool                  internal mockPool;
-    MockPoolConfigurator      internal mockPoolConfigurator;
-
-    address internal admin = makeAddr("admin");
-    address internal updater = makeAddr("updater");
-
-    CapAutomatorHarness internal capAutomator;
-
-    function setUp() public {
-        mockPool                  = new MockPool();
-        mockPoolConfigurator      = new MockPoolConfigurator(address(mockPool));
-        mockPoolAddressesProvider = new MockPoolAddressesProvider(address(mockPool), address(mockPoolConfigurator));
-
-        vm.prank(admin);
-        capAutomator = new CapAutomatorHarness(address(mockPoolAddressesProvider), admin, updater);
-    }
+contract CalculateNewCapTests is CapAutomatorUnitTestBase {
 
     function test_calculateNewCap_raiseCap() external {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1030,7 +961,7 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap_notConfigured() external {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              0,
                 gap:              0,
@@ -1048,7 +979,7 @@ contract CalculateNewCapTests is Test {
     function test_calculateNewCap_sameBlock() external {
         vm.roll(250);
 
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1062,7 +993,7 @@ contract CalculateNewCapTests is Test {
 
         assertEq(newCap, 2_400);
 
-        newCap = capAutomator._calculateNewCapExternal(
+        newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1078,7 +1009,7 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap_sameCap() external {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1094,7 +1025,7 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap_closeToMax() external {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1110,7 +1041,7 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap_aboveMax() external {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1126,7 +1057,7 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap_cooldown() external {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1140,7 +1071,7 @@ contract CalculateNewCapTests is Test {
 
         assertEq(newCap, 2_000);
 
-        newCap = capAutomator._calculateNewCapExternal(
+        newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1155,7 +1086,7 @@ contract CalculateNewCapTests is Test {
         assertEq(newCap, 1_700);
 
         vm.warp(24 hours);
-        newCap = capAutomator._calculateNewCapExternal(
+        newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              5_000,
                 gap:              500,
@@ -1171,7 +1102,7 @@ contract CalculateNewCapTests is Test {
     }
 
     function test_calculateNewCap_belowState() external {
-        uint256 newCap = capAutomator._calculateNewCapExternal(
+        uint256 newCap = capAutomatorHarness._calculateNewCapExternal(
             CapAutomator.CapConfig({
                 max:              4_500,
                 gap:              500,
@@ -1372,7 +1303,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
         vm.roll(300);
         vm.warp(300_000 seconds);
 
-        mockPool.__setDecimals(6);
+        mockPool.aToken().__setDecimals(6);
         mockPool.__setATokenScaledTotalSupply(4_500e6);
         mockPool.__setAccruedToTreasury(100e6);
         mockPool.__setLiquidityIndex(1.5e27);
@@ -1659,7 +1590,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
         vm.roll(200);
         vm.warp(200_000 seconds);
 
-        mockPool.__setDecimals(6);
+        mockPool.debtToken().__setDecimals(6);
         mockPool.__setTotalDebt(3_900e6);
 
         vm.prank(admin);
