@@ -19,7 +19,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             DataTypes.ReserveData memory reserveData = pool.getReserveData(assets[i]);
 
             uint256 preIncreaseBorrowCap = reserveData.configuration.getBorrowCap();
-            uint256 currentBorrow        = currentBorrows(reserveData);
+            uint256 currentBorrow        = _currentBorrows(reserveData);
 
             uint256 newMaxCap;
             uint256 newGap;
@@ -84,7 +84,7 @@ contract GeneralizedTests is CapAutomatorIntegrationTestsBase {
             // If there is a cap a decrease will be attempted, but if there is no cap, decrease is not possible
             if (preDecreaseBorrowCap == 0) continue;
 
-            uint256 currentBorrow        = currentBorrows(reserveData);
+            uint256 currentBorrow        = _currentBorrows(reserveData);
             uint256 preDecreaseBorrowGap = preDecreaseBorrowCap - currentBorrow;
 
             uint256 newGap = preDecreaseBorrowGap / 3;
@@ -405,7 +405,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         assertEq(initialBorrowCap, 1_400_000);
 
         // Confirm initial borrows
-        uint256 initialBorrows = currentBorrows(wethReserveData);
+        uint256 initialBorrows = _currentBorrows(wethReserveData);
 
         assertEq(initialBorrows, 126_520);
 
@@ -495,7 +495,7 @@ contract ConcreteTests is CapAutomatorIntegrationTestsBase {
         vm.prank(CAP_AUTO_UPDATER);
         capAutomator.execBorrow(WETH);
 
-        assertEq(currentBorrows(pool.getReserveData(WETH)), 127_110);
+        assertEq(_currentBorrows(pool.getReserveData(WETH)), 127_110);
 
         // initialBorrows + borrowedInTest - repaidInTest + debtAccruedIn24h
         // = 126_520 + 480 + 150 - 50 + 10 = 227_000

@@ -29,7 +29,6 @@ contract CapAutomatorUnitTestBase is Test {
     MockPoolConfigurator      internal mockPoolConfigurator;
     MockToken                 internal mockToken;
 
-
     address internal admin        = makeAddr("admin");
     address internal asset        = makeAddr("asset");
     address internal unauthorized = makeAddr("unauthorized");
@@ -73,6 +72,118 @@ contract CapAutomatorUnitTestBase is Test {
             admin,
             updater1
         );
+    }
+    
+    function _assertEmptySupplyCapConfig(
+        address asset_
+    ) internal {
+        (
+            uint48 max_,
+            uint48 gap_,
+            uint48 increaseCooldown_,
+            uint48 lastUpdateBlock_,
+            uint48 lastIncreaseTime_
+        ) = capAutomator.supplyCapConfigs(asset_);
+
+        assertEq(max_,              0);
+        assertEq(gap_,              0);
+        assertEq(increaseCooldown_, 0);
+        assertEq(lastUpdateBlock_,  0);
+        assertEq(lastIncreaseTime_, 0);
+    }
+
+    function _assertEmptyBorrowCapConfig(
+        address asset_
+    ) internal {
+        (
+            uint48 max_,
+            uint48 gap_,
+            uint48 increaseCooldown_,
+            uint48 lastUpdateBlock_,
+            uint48 lastIncreaseTime_
+        ) = capAutomator.borrowCapConfigs(asset_);
+
+        assertEq(max_,              0);
+        assertEq(gap_,              0);
+        assertEq(increaseCooldown_, 0);
+        assertEq(lastUpdateBlock_,  0);
+        assertEq(lastIncreaseTime_, 0);
+    }
+
+    function _assertSupplyCapConfig(
+        address asset_,
+        uint48 max,
+        uint48 gap,
+        uint48 increaseCooldown,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
+    ) internal {
+        (
+            uint48 max_,
+            uint48 gap_,
+            uint48 increaseCooldown_,
+            uint48 lastUpdateBlock_,
+            uint48 lastIncreaseTime_
+        ) = capAutomator.supplyCapConfigs(asset_);
+
+        assertEq(max_,              max);
+        assertEq(gap_,              gap);
+        assertEq(increaseCooldown_, increaseCooldown);
+        assertEq(lastUpdateBlock_,  lastUpdateBlock);
+        assertEq(lastIncreaseTime_, lastIncreaseTime);
+    }
+
+    function _assertBorrowCapConfig(
+        address asset_,
+        uint48 max,
+        uint48 gap,
+        uint48 increaseCooldown,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
+    ) internal {
+        (
+            uint48 max_,
+            uint48 gap_,
+            uint48 increaseCooldown_,
+            uint48 lastUpdateBlock_,
+            uint48 lastIncreaseTime_
+        ) = capAutomator.borrowCapConfigs(asset_);
+
+        assertEq(max_,              max);
+        assertEq(gap_,              gap);
+        assertEq(increaseCooldown_, increaseCooldown);
+        assertEq(lastUpdateBlock_,  lastUpdateBlock);
+        assertEq(lastIncreaseTime_, lastIncreaseTime);
+    }
+
+    function _assertTrackersSupplyCapConfig(
+        address asset_,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
+    ) internal {
+        (
+            , , ,
+            uint48 lastUpdateBlock_,
+            uint48 lastIncreaseTime_
+        ) = capAutomator.supplyCapConfigs(asset_);
+
+        assertEq(lastUpdateBlock_,  lastUpdateBlock);
+        assertEq(lastIncreaseTime_, lastIncreaseTime);
+    }
+
+    function _assertTrackersBorrowCapConfig(
+        address asset_,
+        uint48 lastUpdateBlock,
+        uint48 lastIncreaseTime
+    ) internal {
+        (
+            , , ,
+            uint48 lastUpdateBlock_,
+            uint48 lastIncreaseTime_
+        ) = capAutomator.borrowCapConfigs(asset_);
+
+        assertEq(lastUpdateBlock_,  lastUpdateBlock);
+        assertEq(lastIncreaseTime_, lastIncreaseTime);
     }
 
 }
@@ -123,7 +234,7 @@ contract CapAutomatorIntegrationTestsBase is Test {
             / 10 ** IERC20Like(_reserveData.aTokenAddress).decimals();
     }
 
-    function currentBorrows(
+    function _currentBorrows(
         DataTypes.ReserveData memory _reserveData
     ) internal view returns (uint256) {
         return
