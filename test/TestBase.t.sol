@@ -16,7 +16,6 @@ import {IACLManagerLike, IPoolLike, IScaledBalanceTokenLike } from "./interfaces
 import { MockPool }                  from "./mocks/MockPool.sol";
 import { MockPoolAddressesProvider } from "./mocks/MockPoolAddressesProvider.sol";
 import { MockPoolConfigurator }      from "./mocks/MockPoolConfigurator.sol";
-import { MockToken }                 from "./mocks/MockToken.sol";
 
 import { CapAutomatorHarness } from "./harnesses/CapAutomatorHarness.sol";
 
@@ -27,7 +26,6 @@ contract CapAutomatorUnitTestBase is Test {
     MockPoolAddressesProvider internal mockPoolAddressesProvider;
     MockPool                  internal mockPool;
     MockPoolConfigurator      internal mockPoolConfigurator;
-    MockToken                 internal mockToken;
 
     address internal admin        = makeAddr("admin");
     address internal asset        = makeAddr("asset");
@@ -48,7 +46,7 @@ contract CapAutomatorUnitTestBase is Test {
 
         mockPool.__setSupplyCap(7_000);
 
-        MockToken(mockPool.aToken()).__setDecimals(18);
+        mockPool.__setDecimals(18);
         mockPool.__setATokenScaledTotalSupply(5_700e18);
         mockPool.__setAccruedToTreasury(50e18);
         mockPool.__setLiquidityIndex(1.2e27);
@@ -56,7 +54,7 @@ contract CapAutomatorUnitTestBase is Test {
 
         mockPool.__setBorrowCap(4_000);
 
-        MockToken(mockPool.debtToken()).__setDecimals(18);
+        mockPool.__setDecimals(18);
         mockPool.__setTotalDebt(3_900e18);
 
         capAutomator = new CapAutomator(address(mockPoolAddressesProvider), admin, updater1);

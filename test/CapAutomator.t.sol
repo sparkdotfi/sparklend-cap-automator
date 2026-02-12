@@ -1100,7 +1100,7 @@ contract ExecSupplyTests is CapAutomatorUnitTestBase {
     function test_execSupply_differentDecimals() external {
         _assertEmptySupplyCapConfig(asset);
 
-        mockPool.aToken().__setDecimals(6);
+        mockPool.__setDecimals(6);
         mockPool.__setATokenScaledTotalSupply(4_500e6);
         mockPool.__setAccruedToTreasury(100e6);
         mockPool.__setLiquidityIndex(1.5e27);
@@ -1275,7 +1275,7 @@ contract ExecBorrowTests is CapAutomatorUnitTestBase {
     function test_execBorrow_differentDecimals() external {
         _assertEmptyBorrowCapConfig(asset);
 
-        mockPool.debtToken().__setDecimals(6);
+        mockPool.__setDecimals(6);
         mockPool.__setTotalDebt(3_900e6);
 
         vm.prank(admin);
