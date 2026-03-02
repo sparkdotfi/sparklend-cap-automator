@@ -14,8 +14,8 @@ contract MockPool {
     /*** Declarations and Constructor                                                           ***/
     /**********************************************************************************************/
 
-    address public aToken;
-    address public debtToken;
+    MockToken public aToken;
+    MockToken public debtToken;
 
     uint256 public liquidityIndex;
     uint256 public accruedToTreasury;
@@ -26,8 +26,8 @@ contract MockPool {
     uint256 public decimals;
 
     constructor() {
-        aToken    = address(new MockToken());
-        debtToken = address(new MockToken());
+        aToken    = new MockToken();
+        debtToken = new MockToken();
     }
 
     /**********************************************************************************************/
@@ -52,9 +52,9 @@ contract MockPool {
             currentStableBorrowRate:     uint128(0),
             lastUpdateTimestamp:         uint40(0),
             id:                          uint16(0),
-            aTokenAddress:               aToken,
+            aTokenAddress:               address(aToken),
             stableDebtTokenAddress:      address(0),
-            variableDebtTokenAddress:    debtToken,
+            variableDebtTokenAddress:    address(debtToken),
             interestRateStrategyAddress: address(0),
             accruedToTreasury:           uint128(accruedToTreasury),
             unbacked:                    uint128(0),
